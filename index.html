@@ -245,6 +245,8 @@ canvas{max-width:100%}
 .hrow-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .hrow-d{margin-left:auto;font-size:12px;color:var(--txt2);font-weight:600}
 .hrow-m{font-size:12px;color:var(--txt3);margin-top:4px}
+.c-search{width:100%;padding:11px 14px;background:var(--bg2);border:1px solid var(--line);color:var(--txt);border-radius:10px;font-size:14px;margin-bottom:14px}
+.c-search:focus{outline:none;border-color:var(--blue)}
 .c-item{display:flex;align-items:center;gap:12px;padding:12px;border:1px solid var(--line);border-radius:12px;margin-bottom:8px;background:var(--bg2)}
 .c-info{flex:1;min-width:0}
 .c-top{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
@@ -435,9 +437,10 @@ canvas{max-width:100%}
 
 <!-- modal conferencia da manha -->
 <div class="mbg" id="cmodal"><div class="modal3" style="max-width:640px">
-  <div class="m3-head"><div><h3><i class="ti ti-clipboard-check" style="margin-right:6px"></i>Conferencia da manha</h3><span id="c-sub"></span></div><button class="m3-x" id="c-close">&times;</button></div>
+  <div class="m3-head"><div><h3><i class="ti ti-clipboard-check" style="margin-right:6px"></i>Conferencia</h3><span id="c-sub"></span></div><button class="m3-x" id="c-close">&times;</button></div>
   <div class="vm-body">
-    <div style="font-size:13px;color:var(--txt3);margin-bottom:14px">Revise os veiculos que ja estao em manutencao. Marque <b style="color:var(--green)">Saiu</b> para os que voltaram a operar, ou <b style="color:var(--txt2)">Ainda esta</b> para manter parado.</div>
+    <div style="font-size:13px;color:var(--txt3);margin-bottom:12px">Revise os veiculos em manutencao. Marque <b style="color:var(--green)">Saiu</b> para os que voltaram a operar, ou <b style="color:var(--txt2)">Ainda esta</b> para manter parado.</div>
+    <input id="c-search" class="c-search" placeholder="Buscar placa, base, perfil, tipo ou motivo..."/>
     <div id="c-list" style="max-height:400px;overflow-y:auto"></div>
     <div id="c-done" style="display:none;text-align:center;padding:30px;color:var(--green);font-size:15px"><i class="ti ti-circle-check" style="font-size:32px;display:block;margin-bottom:8px"></i>Tudo conferido! Nenhum veiculo pendente.</div>
   </div>
@@ -844,11 +847,15 @@ document.getElementById('vm-save').onclick=()=>{const r=findP(vmPlaca);if(!r)ret
 /* ============ REFRESH GLOBAL ============ */
 /* ============ CONFERENCIA DA MANHA ============ */
 function renderConf(){
-  const man=manAll().sort((a,b)=>(daysIn(b.v)||0)-(daysIn(a.v)||0));
+  const all=manAll().sort((a,b)=>(daysIn(b.v)||0)-(daysIn(a.v)||0));
   const list=document.getElementById('c-list'),done=document.getElementById('c-done');
-  document.getElementById('c-sub').textContent=man.length+' veiculo'+(man.length!==1?'s':'')+' em manutencao';
-  if(!man.length){list.style.display='none';done.style.display='';return;}
+  const q=(document.getElementById('c-search').value||'').toLowerCase().trim();
+  document.getElementById('c-sub').textContent=all.length+' veiculo'+(all.length!==1?'s':'')+' em manutencao';
+  if(!all.length){list.style.display='none';done.style.display='';document.getElementById('c-search').style.display='none';return;}
+  document.getElementById('c-search').style.display='';
+  const man=q?all.filter(({v,uf})=>{const tipos=v.status==='SEVERA'?'severa':(v.tipos_manut||'');return v.placa.toLowerCase().includes(q)||v.base.toLowerCase().includes(q)||v.perfil.toLowerCase().includes(q)||uf.toLowerCase().includes(q)||tipos.toLowerCase().includes(q)||(v.motivo||v.detalhe||'').toLowerCase().includes(q);}):all;
   list.style.display='';done.style.display='none';
+  if(!man.length){list.innerHTML='<div class="empty">Nenhuma placa encontrada para "'+q+'".</div>';return;}
   list.innerHTML=man.map(({v,uf})=>{
     const d=daysIn(v);const dtxt=d===0?'entrou hoje':d+'d parado';
     const dcol=d>=15?'#fca5a5':(d>=7?'#fcd34d':'var(--txt2)');
@@ -857,7 +864,8 @@ function renderConf(){
   list.querySelectorAll('.c-out').forEach(b=>b.onclick=()=>{const r=findP(b.dataset.p);if(r){histFechar(r.v.placa);r.v.status='OK';delete r.v.motivo;delete r.v.prev;delete r.v.entrada;r.v.tipos_manut='';save();pushVeiculo(r.v.placa);renderConf();refreshAll();}});
   list.querySelectorAll('.c-stay').forEach(b=>b.onclick=()=>{const it=b.closest('.c-item');it.style.opacity='.4';it.querySelectorAll('button').forEach(x=>x.disabled=true);b.textContent='✓ Confirmado';updateConfBadge();});
 }
-function openConf(){document.getElementById('cmodal').classList.add('open');renderConf();}
+document.getElementById('c-search').addEventListener('input',renderConf);
+function openConf(){document.getElementById('cmodal').classList.add('open');document.getElementById('c-search').value='';renderConf();}
 function updateConfBadge(){const n=manAll().length;const bd=document.getElementById('conf-badge');if(n>0){bd.style.display='';bd.textContent=n;}else{bd.style.display='none';}}
 document.getElementById('btn-conf').onclick=openConf;
 document.getElementById('c-close').onclick=()=>document.getElementById('cmodal').classList.remove('open');
