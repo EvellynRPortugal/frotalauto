@@ -190,6 +190,12 @@ canvas{max-width:100%}
 .m3-fld label{font-size:11px;color:var(--txt3)}
 .m3-fld input{background:var(--surf);border:1px solid var(--line);color:var(--txt);padding:9px 10px;border-radius:9px;color-scheme:dark}
 .m3-chk{font-size:13px;color:var(--txt2);display:flex;align-items:center;gap:6px;cursor:pointer}
+.m3-tipos{display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+.m3-tipos .sev-chk{color:#fca5a5}
+.tp-badge{font-size:10px;font-weight:700;padding:1px 7px;border-radius:8px;margin-right:4px;text-transform:uppercase}
+.tp-corr{background:rgba(59,130,246,.18);color:#60a5fa}
+.tp-prev{background:rgba(16,185,129,.18);color:#6ee7b7}
+.tp-sev{background:rgba(239,68,68,.2);color:#fca5a5}
 .m3-addbtn{background:var(--amber);color:#0a1628;border:none;padding:10px 18px;border-radius:9px;font-weight:700;cursor:pointer}
 .m3-msg{font-size:13px;min-height:0}
 .m3-list{padding:8px 22px 20px;max-height:340px;overflow-y:auto}
@@ -239,6 +245,16 @@ canvas{max-width:100%}
 .hrow-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .hrow-d{margin-left:auto;font-size:12px;color:var(--txt2);font-weight:600}
 .hrow-m{font-size:12px;color:var(--txt3);margin-top:4px}
+.c-item{display:flex;align-items:center;gap:12px;padding:12px;border:1px solid var(--line);border-radius:12px;margin-bottom:8px;background:var(--bg2)}
+.c-info{flex:1;min-width:0}
+.c-top{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.c-meta{font-size:12px;color:var(--txt2);margin-top:4px}
+.c-mot{font-size:12px;color:var(--txt3);margin-top:2px}
+.c-acts{display:flex;gap:6px;flex-shrink:0}
+.c-stay{padding:8px 12px;background:transparent;border:1px solid var(--line);color:var(--txt2);border-radius:8px;font-size:12px;font-weight:600;cursor:pointer}
+.c-stay:hover{background:var(--surf2)}
+.c-out{padding:8px 14px;background:var(--green);color:#0a1628;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer}
+.c-out:hover{background:#0d9668}
 
 </style>
 </head>
@@ -255,6 +271,7 @@ canvas{max-width:100%}
     <span class="hdr-pill"><b id="h-man">29</b> em manutencao</span>
     <span class="hdr-pill"><b id="h-disp">95%</b> disponibilidade</span>
     <span class="hdr-pill" id="sync-status"><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#6b7f9e;margin-right:6px"></span>Conectando...</span>
+    <button class="hdr-pill" id="btn-conf" style="cursor:pointer;border:1px solid var(--blue);background:rgba(59,130,246,.12);color:var(--blue2);font-weight:600"><i class="ti ti-clipboard-check" style="margin-right:5px"></i>Conferencia <span id="conf-badge" style="display:none;background:var(--amber);color:#0a1628;border-radius:9px;padding:0 7px;font-size:11px;margin-left:4px"></span></button>
   </div>
 </header>
 
@@ -347,6 +364,12 @@ canvas{max-width:100%}
     <div class="kpi b-green"><div class="lbl">Operacionais</div><div class="val" id="mm-op">0</div></div>
     <div class="kpi b-red"><div class="lbl">Atrasados</div><div class="val" id="mm-late">0</div></div>
   </div>
+  <div class="kpi-grid" style="margin-top:-8px">
+    <div class="kpi b-blue"><div class="lbl"><i class="ti ti-tool"></i> Corretiva</div><div class="val" id="mm-corr">0</div><div class="delta flat">reparo de falha</div></div>
+    <div class="kpi b-green"><div class="lbl"><i class="ti ti-calendar-check"></i> Preventiva</div><div class="val" id="mm-prevc">0</div><div class="delta flat">manutencao programada</div></div>
+    <div class="kpi b-red"><div class="lbl"><i class="ti ti-alert-triangle"></i> Severa</div><div class="val" id="mm-sevc">0</div><div class="delta flat">parada critica</div></div>
+    <div class="kpi b-amber"><div class="lbl"><i class="ti ti-tags"></i> Corretiva + Preventiva</div><div class="val" id="mm-ambos">0</div><div class="delta flat">nas duas ao mesmo tempo</div></div>
+  </div>
   <div class="mfilter">
     <div style="font-size:13px;color:var(--txt3)">Sinalize placas na oficina. Use "editar" no card para registrar motivo, previsao e dias parados.</div>
     <select id="mf-uf"><option value="">Todos os estados</option></select>
@@ -383,7 +406,7 @@ canvas{max-width:100%}
   <div class="m3-head"><div><h3 id="mm-title">Base</h3><span id="mm-sub"></span></div><button class="m3-x" id="mm-close">&times;</button></div>
   <div class="m3-add">
     <div class="m3-row"><input class="pin" id="mm-placa" placeholder="Placa" maxlength="8"/><input class="min" id="mm-motivo" placeholder="Motivo / observacao"/></div>
-    <div class="m3-row"><div class="m3-fld"><label>Previsao de saida</label><input type="date" id="mm-prev"/></div><label class="m3-chk"><input type="checkbox" id="mm-sev"/> Severa</label><button class="m3-addbtn" id="mm-add">+ Sinalizar</button></div>
+    <div class="m3-row"><div class="m3-fld"><label>Previsao de saida</label><input type="date" id="mm-prev"/></div><div class="m3-tipos"><label class="m3-chk"><input type="checkbox" id="mm-corr"> Corretiva</label><label class="m3-chk"><input type="checkbox" id="mm-prev-t"> Preventiva</label><label class="m3-chk sev-chk"><input type="checkbox" id="mm-sev"> Severa</label></div><button class="m3-addbtn" id="mm-add">+ Sinalizar</button></div>
     <div class="m3-msg" id="mm-msg"></div>
   </div>
   <div class="m3-list" id="mm-list"></div>
@@ -410,6 +433,16 @@ canvas{max-width:100%}
   </div>
 </div></div>
 
+<!-- modal conferencia da manha -->
+<div class="mbg" id="cmodal"><div class="modal3" style="max-width:640px">
+  <div class="m3-head"><div><h3><i class="ti ti-clipboard-check" style="margin-right:6px"></i>Conferencia da manha</h3><span id="c-sub"></span></div><button class="m3-x" id="c-close">&times;</button></div>
+  <div class="vm-body">
+    <div style="font-size:13px;color:var(--txt3);margin-bottom:14px">Revise os veiculos que ja estao em manutencao. Marque <b style="color:var(--green)">Saiu</b> para os que voltaram a operar, ou <b style="color:var(--txt2)">Ainda esta</b> para manter parado.</div>
+    <div id="c-list" style="max-height:400px;overflow-y:auto"></div>
+    <div id="c-done" style="display:none;text-align:center;padding:30px;color:var(--green);font-size:15px"><i class="ti ti-circle-check" style="font-size:32px;display:block;margin-bottom:8px"></i>Tudo conferido! Nenhum veiculo pendente.</div>
+  </div>
+</div></div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script>
@@ -426,7 +459,7 @@ function save(){localStorage.setItem('lauto_v7',JSON.stringify(DATA));}
 const SB_URL='https://tvpqdpqmainlhenxpsap.supabase.co';
 const SB_KEY='sb_publishable_7V2LryjNG-2VZnqy4QyVFg_cJeHqm38';
 let sb=null, sbOk=false;
-const SBFIELDS=['placa','uf','base','cidade','tipo','perfil','marca','modelo','projeto','ano','status','motivo','entrada','prev','detalhe','tipo_rota'];
+const SBFIELDS=['placa','uf','base','cidade','tipo','perfil','marca','modelo','projeto','ano','status','motivo','entrada','prev','detalhe','tipo_rota','tipos_manut'];
 function rebuildFromRows(rows){
   const d={};
   rows.forEach(r=>{
@@ -457,6 +490,7 @@ async function loadFromSupabase(){
     await loadHistorico();
     subscribeHistRealtime();
     refreshAll();
+    maybeAutoConf();
   }catch(e){console.warn('Supabase indisponivel:',e);setStatus('offline','Sem conexao — usando dados locais');}
 }
 function subscribeRealtime(){
@@ -492,7 +526,7 @@ async function histAbrir(v,uf){
   // registra entrada na oficina (so se nao houver uma aberta para a placa)
   const aberta=HIST.find(h=>h.placa===v.placa&&!h.saida);
   if(aberta)return;
-  const rec={placa:v.placa,base:v.base,uf:uf,motivo:v.motivo||v.detalhe||null,severa:v.status==='SEVERA',entrada:v.entrada||today(),saida:null,dias:null};
+  const rec={placa:v.placa,base:v.base,uf:uf,motivo:v.motivo||v.detalhe||null,severa:v.status==='SEVERA',tipos:v.tipos_manut||'',entrada:v.entrada||today(),saida:null,dias:null};
   if(sbOk){try{const {data,error}=await sb.from('manutencoes').insert(rec).select().single();if(!error&&data){HIST.unshift(data);saveHist();return;}}catch(e){console.warn('hist abrir',e);}}
   rec.id='local-'+Date.now();HIST.unshift(rec);saveHist();
 }
@@ -723,6 +757,7 @@ function renderDiario(){
 function basesData(fUF){const m={};for(const uf in DATA){if(fUF&&uf!==fUF)continue;DATA[uf].veiculos.forEach(v=>{if(!m[v.base])m[v.base]={base:v.base,cidade:v.cidade,uf,vs:[]};m[v.base].vs.push(v);});}return Object.values(m).sort((a,b)=>b.vs.length-a.vs.length);}
 function prevPill3(v){if(!v.prev)return '<span class="tag3" style="background:#1b2c47;color:var(--txt3)">sem previsao</span>';const dp=daysToPrev(v);const dt=new Date(v.prev+'T00:00:00').toLocaleDateString('pt-BR');let bg,cl,tg;if(dp<0){bg='rgba(239,68,68,.2)';cl='#fca5a5';tg=Math.abs(dp)+'d atrasado';}else if(dp===0){bg='rgba(245,158,11,.2)';cl='#fcd34d';tg='sai hoje';}else if(dp<=2){bg='rgba(245,158,11,.2)';cl='#fcd34d';tg='em '+dp+'d';}else{bg='rgba(16,185,129,.2)';cl='#6ee7b7';tg='em '+dp+'d';}return '<span class="tag3" style="background:'+bg+';color:'+cl+'">'+dt+' &middot; '+tg+'</span>';}
 function daysPill3(v){const d=daysIn(v);if(d===null)return '';const bg=d>=15?'rgba(239,68,68,.2)':(d>=7?'rgba(245,158,11,.2)':'#1b2c47');const cl=d>=15?'#fca5a5':(d>=7?'#fcd34d':'var(--txt2)');return '<span class="tag3" style="background:'+bg+';color:'+cl+'"><b>'+(d===0?'entrou hoje':d+'d na oficina')+'</b></span>';}
+function tipoBadges(v){if(v.status==='SEVERA')return '<span class="tp-badge tp-sev">Severa</span>';const t=(v.tipos_manut||'').split(',').filter(Boolean);let h='';if(t.includes('corretiva'))h+='<span class="tp-badge tp-corr">Corretiva</span>';if(t.includes('preventiva'))h+='<span class="tp-badge tp-prev">Preventiva</span>';return h;}
 function fillMF(){const s=document.getElementById('mf-uf');if(s.options.length>1)return;Object.keys(DATA).filter(u=>DATA[u].total>0).sort().forEach(u=>{const o=document.createElement('option');o.value=u;o.textContent=u+' ('+DATA[u].total+')';s.appendChild(o);});s.onchange=renderManut;}
 function renderManut(){
   updHeader();fillMF();
@@ -733,12 +768,23 @@ function renderManut(){
   document.getElementById('mm-man').textContent=man.length;
   document.getElementById('mm-op').textContent=scope.length-man.length;
   document.getElementById('mm-late').textContent=late.length;
+  // KPIs por tipo de manutencao
+  const hasTipo=(v,t)=>(v.tipos_manut||'').split(',').includes(t);
+  const corr=man.filter(x=>x.v.status!=='SEVERA'&&hasTipo(x.v,'corretiva'));
+  const prevc=man.filter(x=>x.v.status!=='SEVERA'&&hasTipo(x.v,'preventiva'));
+  const sevc=man.filter(x=>x.v.status==='SEVERA');
+  const ambos=man.filter(x=>x.v.status!=='SEVERA'&&hasTipo(x.v,'corretiva')&&hasTipo(x.v,'preventiva'));
+  const el=id=>document.getElementById(id);
+  if(el('mm-corr'))el('mm-corr').textContent=corr.length;
+  if(el('mm-prevc'))el('mm-prevc').textContent=prevc.length;
+  if(el('mm-sevc'))el('mm-sevc').textContent=sevc.length;
+  if(el('mm-ambos'))el('mm-ambos').textContent=ambos.length;
   const bases=basesData(fUF),wrap=document.getElementById('mcards');
   if(!bases.length){wrap.innerHTML='<div class="empty" style="grid-column:1/-1">Nenhuma base.</div>';return;}
   wrap.innerHTML=bases.map(b=>{
     const tot=b.vs.length,inM=b.vs.filter(v=>v.status!=='OK'),op=tot-inM.length,pct=tot?Math.round(op/tot*100):0;
     const pc=pct>=80?PAL.green:(pct>=50?PAL.amber:PAL.red),has=inM.length>0;
-    let ml=has?inM.sort((a,c)=>(c.status==='SEVERA')-(a.status==='SEVERA')).map(v=>'<div class="mitem3"><span class="md3 '+(v.status==='SEVERA'?'sev':'man')+'"></span><div class="mb3"><span class="mp3">'+v.placa+'</span><span class="pf-tag" style="margin-left:6px">'+v.perfil+'</span><div class="mr3">'+(v.motivo||v.detalhe||'Sem motivo')+'</div>'+daysPill3(v)+prevPill3(v)+'</div></div>').join(''):'<div class="mempty3">Nenhum veiculo em manutencao</div>';
+    let ml=has?inM.sort((a,c)=>(c.status==='SEVERA')-(a.status==='SEVERA')).map(v=>'<div class="mitem3"><span class="md3 '+(v.status==='SEVERA'?'sev':'man')+'"></span><div class="mb3"><span class="mp3">'+v.placa+'</span><span class="pf-tag" style="margin-left:6px">'+v.perfil+'</span><div class="mr3">'+tipoBadges(v)+(v.motivo||v.detalhe||'Sem motivo')+'</div>'+daysPill3(v)+prevPill3(v)+'</div></div>').join(''):'<div class="mempty3">Nenhum veiculo em manutencao</div>';
     return '<div class="bc"><div class="bc-h"><span class="t">'+b.base+' &mdash; '+b.cidade+'</span><span class="sig">'+b.uf+'</span></div><div class="minis3"><div class="mini3"><div class="n">'+tot+'</div><div class="l">Frota</div></div><div class="mini3 mn"><div class="n">'+inM.length+'</div><div class="l">Manut.</div></div><div class="mini3 op"><div class="n">'+op+'</div><div class="l">Operac.</div></div></div><div class="pr-row"><span>Disponibilidade</span><b style="color:'+pc+'">'+pct+'%</b></div><div class="pr-bar"><span style="width:'+pct+'%;background:'+pc+'"></span></div><div class="bc-mh"><span class="l">Manutencao</span><span class="r"><span class="vcnt2 '+(has?'has':'ok')+'">'+(has?inM.length+' veic.':'OK')+'</span><button class="editb" data-b="'+b.base+'">editar</button></span></div>'+ml+'</div>';
   }).join('');
   wrap.querySelectorAll('.editb').forEach(btn=>btn.onclick=()=>openMM(btn.dataset.b));
@@ -746,10 +792,14 @@ function renderManut(){
 let mmBase=null;
 function openMM(base){mmBase=base;document.getElementById('mmodal').classList.add('open');renderMM();}
 function mBaseV(){const a=[];for(const uf in DATA)DATA[uf].veiculos.forEach(v=>{if(v.base===mmBase)a.push({v,uf});});return a;}
-function renderMM(){const bv=mBaseV(),inM=bv.filter(x=>x.v.status!=='OK');document.getElementById('mm-title').textContent=mmBase+(bv[0]?' — '+bv[0].v.cidade:'');document.getElementById('mm-sub').textContent=bv.length+' veiculos · '+inM.length+' em manutencao';const l=document.getElementById('mm-list');if(!inM.length){l.innerHTML='<div class="mempty3">Nenhum veiculo em manutencao.</div>';return;}l.innerHTML=inM.sort((a,c)=>(c.v.status==='SEVERA')-(a.v.status==='SEVERA')).map(({v})=>'<div class="m3l"><span class="p">'+v.placa+'</span><div class="i"><span class="pf-tag">'+v.perfil+'</span> '+(v.motivo||v.detalhe||'sem motivo')+'<br>'+daysPill3(v)+prevPill3(v)+'</div><button class="sev" data-p="'+v.placa+'">'+(v.status==='SEVERA'?'Normal':'Severa')+'</button><button class="ret" data-p="'+v.placa+'">Baixa</button></div>').join('');l.querySelectorAll('.ret').forEach(b=>b.onclick=()=>{const r=findP(b.dataset.p);if(r){histFechar(r.v.placa);r.v.status='OK';delete r.v.motivo;delete r.v.prev;delete r.v.entrada;save();pushVeiculo(r.v.placa);renderMM();refreshAll();}});l.querySelectorAll('.sev').forEach(b=>b.onclick=()=>{const r=findP(b.dataset.p);if(r){r.v.status=r.v.status==='SEVERA'?'MANUTENCAO':'SEVERA';histSetSevera(r.v.placa,r.v.status==='SEVERA');save();pushVeiculo(r.v.placa);renderMM();refreshAll();}});}
+function renderMM(){const bv=mBaseV(),inM=bv.filter(x=>x.v.status!=='OK');document.getElementById('mm-title').textContent=mmBase+(bv[0]?' — '+bv[0].v.cidade:'');document.getElementById('mm-sub').textContent=bv.length+' veiculos · '+inM.length+' em manutencao';const l=document.getElementById('mm-list');if(!inM.length){l.innerHTML='<div class="mempty3">Nenhum veiculo em manutencao.</div>';return;}l.innerHTML=inM.sort((a,c)=>(c.v.status==='SEVERA')-(a.v.status==='SEVERA')).map(({v})=>'<div class="m3l"><span class="p">'+v.placa+'</span><div class="i"><span class="pf-tag">'+v.perfil+'</span> '+(v.motivo||v.detalhe||'sem motivo')+'<br>'+daysPill3(v)+prevPill3(v)+'</div><button class="sev" data-p="'+v.placa+'">'+(v.status==='SEVERA'?'Normal':'Severa')+'</button><button class="ret" data-p="'+v.placa+'">Baixa</button></div>').join('');l.querySelectorAll('.ret').forEach(b=>b.onclick=()=>{const r=findP(b.dataset.p);if(r){histFechar(r.v.placa);r.v.status='OK';delete r.v.motivo;delete r.v.prev;delete r.v.entrada;r.v.tipos_manut='';save();pushVeiculo(r.v.placa);renderMM();refreshAll();}});l.querySelectorAll('.sev').forEach(b=>b.onclick=()=>{const r=findP(b.dataset.p);if(r){r.v.status=r.v.status==='SEVERA'?'MANUTENCAO':'SEVERA';histSetSevera(r.v.placa,r.v.status==='SEVERA');save();pushVeiculo(r.v.placa);renderMM();refreshAll();}});}
 document.getElementById('mm-close').onclick=()=>document.getElementById('mmodal').classList.remove('open');
 document.getElementById('mmodal').onclick=e=>{if(e.target.id==='mmodal')document.getElementById('mmodal').classList.remove('open');};
-document.getElementById('mm-add').onclick=()=>{const inp=document.getElementById('mm-placa').value.trim().toUpperCase(),mot=document.getElementById('mm-motivo').value.trim(),prev=document.getElementById('mm-prev').value,sev=document.getElementById('mm-sev').checked,msg=document.getElementById('mm-msg');if(!inp){msg.style.color=PAL.red;msg.textContent='Digite uma placa.';return;}const r=findP(inp);if(!r){msg.style.color=PAL.red;msg.textContent='Placa nao encontrada.';return;}r.v.status=sev?'SEVERA':'MANUTENCAO';if(mot)r.v.motivo=mot;if(prev)r.v.prev=prev;if(!r.v.entrada)r.v.entrada=today();save();pushVeiculo(r.v.placa);histAbrir(r.v,r.uf);document.getElementById('mm-placa').value='';document.getElementById('mm-motivo').value='';document.getElementById('mm-prev').value='';document.getElementById('mm-sev').checked=false;msg.style.color=PAL.green;msg.textContent='Placa '+inp+' sinalizada.';renderMM();refreshAll();};
+// exclusao mutua: severa desmarca corretiva/preventiva e vice-versa
+document.getElementById('mm-sev').addEventListener('change',function(){if(this.checked){document.getElementById('mm-corr').checked=false;document.getElementById('mm-prev-t').checked=false;}});
+document.getElementById('mm-corr').addEventListener('change',function(){if(this.checked)document.getElementById('mm-sev').checked=false;});
+document.getElementById('mm-prev-t').addEventListener('change',function(){if(this.checked)document.getElementById('mm-sev').checked=false;});
+document.getElementById('mm-add').onclick=()=>{const inp=document.getElementById('mm-placa').value.trim().toUpperCase(),mot=document.getElementById('mm-motivo').value.trim(),prev=document.getElementById('mm-prev').value,sev=document.getElementById('mm-sev').checked,corr=document.getElementById('mm-corr').checked,prevt=document.getElementById('mm-prev-t').checked,msg=document.getElementById('mm-msg');if(!inp){msg.style.color=PAL.red;msg.textContent='Digite uma placa.';return;}const r=findP(inp);if(!r){msg.style.color=PAL.red;msg.textContent='Placa nao encontrada.';return;}if(!sev&&!corr&&!prevt){msg.style.color=PAL.red;msg.textContent='Marque ao menos um tipo (corretiva, preventiva ou severa).';return;}let tipos=[];if(!sev){if(corr)tipos.push('corretiva');if(prevt)tipos.push('preventiva');}r.v.status=sev?'SEVERA':'MANUTENCAO';r.v.tipos_manut=tipos.join(',');if(mot)r.v.motivo=mot;if(prev)r.v.prev=prev;if(!r.v.entrada)r.v.entrada=today();save();pushVeiculo(r.v.placa);histAbrir(r.v,r.uf);document.getElementById('mm-placa').value='';document.getElementById('mm-motivo').value='';document.getElementById('mm-prev').value='';document.getElementById('mm-sev').checked=false;document.getElementById('mm-corr').checked=false;document.getElementById('mm-prev-t').checked=false;msg.style.color=PAL.green;msg.textContent='Placa '+inp+' sinalizada.';renderMM();refreshAll();};
 
 /* ============ VEICULOS + SENHA ============ */
 const SENHA='2303';
@@ -792,7 +842,33 @@ document.getElementById('vmodal').onclick=e=>{if(e.target.id==='vmodal')document
 document.getElementById('vm-save').onclick=()=>{const r=findP(vmPlaca);if(!r)return;const v=r.v,src=r.uf,nb=document.getElementById('vm-base').value,np=document.getElementById('vm-proj').value,dst=BASES[nb].uf,cB=v.base!==nb,cP=v.projeto!==np,msg=document.getElementById('vm-msg');if(!cB&&!cP){msg.style.color=PAL.red;msg.textContent='Nada alterado.';return;}v.projeto=np;if(cB){v.base=nb;v.cidade=BASES[nb].cidade;if(dst!==src){const i=DATA[src].veiculos.findIndex(x=>x.placa===v.placa);const mv=DATA[src].veiculos.splice(i,1)[0];DATA[src].total--;if(!DATA[dst])DATA[dst]={uf:dst,total:0,veiculos:[]};DATA[dst].veiculos.push(mv);DATA[dst].total++;DATA[dst].veiculos.sort((a,b)=>(a.base+a.placa).localeCompare(b.base+b.placa));if(DATA[src].total===0)delete DATA[src];}}save();pushVeiculo(v.placa);let pt=[];if(cB)pt.push('base → '+nb+' ('+dst+')');if(cP)pt.push('projeto → '+np);msg.style.color=PAL.green;msg.textContent='Salvo: '+pt.join(', ');renderVeic();refreshAll();setTimeout(()=>document.getElementById('vmodal').classList.remove('open'),900);};
 
 /* ============ REFRESH GLOBAL ============ */
-function refreshAll(){updHeader();const av=id=>document.getElementById('view-'+id).classList.contains('active');if(av('dash'))renderDash();if(av('mapa')){drawMap();renderSP();}if(av('manut'))renderManut();if(av('veic')&&document.getElementById('vinner').style.display!=='none')renderVeic();}
+/* ============ CONFERENCIA DA MANHA ============ */
+function renderConf(){
+  const man=manAll().sort((a,b)=>(daysIn(b.v)||0)-(daysIn(a.v)||0));
+  const list=document.getElementById('c-list'),done=document.getElementById('c-done');
+  document.getElementById('c-sub').textContent=man.length+' veiculo'+(man.length!==1?'s':'')+' em manutencao';
+  if(!man.length){list.style.display='none';done.style.display='';return;}
+  list.style.display='';done.style.display='none';
+  list.innerHTML=man.map(({v,uf})=>{
+    const d=daysIn(v);const dtxt=d===0?'entrou hoje':d+'d parado';
+    const dcol=d>=15?'#fca5a5':(d>=7?'#fcd34d':'var(--txt2)');
+    return '<div class="c-item" data-p="'+v.placa+'"><div class="c-info"><div class="c-top"><span class="tplate2">'+v.placa+'</span><span class="pf-tag">'+v.perfil+'</span>'+tipoBadges(v)+'</div><div class="c-meta">'+uf+' &middot; '+v.base+' &middot; <b style="color:'+dcol+'">'+dtxt+'</b></div><div class="c-mot">'+(v.motivo||v.detalhe||'sem motivo informado')+'</div></div><div class="c-acts"><button class="c-stay" data-p="'+v.placa+'">Ainda esta</button><button class="c-out" data-p="'+v.placa+'">Saiu</button></div></div>';
+  }).join('');
+  list.querySelectorAll('.c-out').forEach(b=>b.onclick=()=>{const r=findP(b.dataset.p);if(r){histFechar(r.v.placa);r.v.status='OK';delete r.v.motivo;delete r.v.prev;delete r.v.entrada;r.v.tipos_manut='';save();pushVeiculo(r.v.placa);renderConf();refreshAll();}});
+  list.querySelectorAll('.c-stay').forEach(b=>b.onclick=()=>{const it=b.closest('.c-item');it.style.opacity='.4';it.querySelectorAll('button').forEach(x=>x.disabled=true);b.textContent='✓ Confirmado';updateConfBadge();});
+}
+function openConf(){document.getElementById('cmodal').classList.add('open');renderConf();}
+function updateConfBadge(){const n=manAll().length;const bd=document.getElementById('conf-badge');if(n>0){bd.style.display='';bd.textContent=n;}else{bd.style.display='none';}}
+document.getElementById('btn-conf').onclick=openConf;
+document.getElementById('c-close').onclick=()=>document.getElementById('cmodal').classList.remove('open');
+document.getElementById('cmodal').onclick=e=>{if(e.target.id==='cmodal')document.getElementById('cmodal').classList.remove('open');};
+// auto-abrir 1x por dia (se houver veiculos em manutencao)
+function maybeAutoConf(){
+  const hoje=today();const ultima=localStorage.getItem('lauto_conf_dia');
+  if(ultima!==hoje && manAll().length>0){localStorage.setItem('lauto_conf_dia',hoje);setTimeout(openConf,1200);}
+}
+
+function refreshAll(){updHeader();updateConfBadge();const av=id=>document.getElementById('view-'+id).classList.contains('active');if(av('dash'))renderDash();if(av('mapa')){drawMap();renderSP();}if(av('manut'))renderManut();if(av('veic')&&document.getElementById('vinner').style.display!=='none')renderVeic();}
 updHeader();renderDash();
 loadFromSupabase();
 
