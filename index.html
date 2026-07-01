@@ -246,6 +246,22 @@ canvas{max-width:100%}
 .hrow-d{margin-left:auto;font-size:12px;color:var(--txt2);font-weight:600}
 .hrow-m{font-size:12px;color:var(--txt3);margin-top:4px}
 .c-search{width:100%;padding:11px 14px;background:var(--bg2);border:1px solid var(--line);color:var(--txt);border-radius:10px;font-size:14px;margin-bottom:14px}
+.c-add-toggle{width:100%;padding:11px;background:rgba(59,130,246,.12);border:1px solid var(--blue);color:var(--blue2);border-radius:10px;font-weight:600;font-size:14px;cursor:pointer;margin-bottom:12px;display:flex;align-items:center;justify-content:center;gap:6px}
+.c-add-toggle:hover{background:rgba(59,130,246,.2)}
+.c-add-box{background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:14px}
+.c-add-row{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+.c-inp-placa{font-family:'JetBrains Mono',monospace;font-weight:700;letter-spacing:1px;text-transform:uppercase;width:130px;padding:10px 12px;background:var(--surf);border:1px solid var(--line);color:var(--txt);border-radius:9px;font-size:14px}
+.c-inp-mot{flex:1;min-width:150px;padding:10px 12px;background:var(--surf);border:1px solid var(--line);color:var(--txt);border-radius:9px;font-size:14px}
+.c-add-row2{display:flex;gap:14px;align-items:flex-end;flex-wrap:wrap}
+.c-tipos{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.c-prev-fld{display:flex;flex-direction:column;gap:3px}
+.c-prev-fld label{font-size:11px;color:var(--txt3)}
+.c-prev-fld input{background:var(--surf);border:1px solid var(--line);color:var(--txt);padding:8px 10px;border-radius:9px;color-scheme:dark}
+.c-add-btn{background:var(--amber);color:#0a1628;border:none;padding:10px 18px;border-radius:9px;font-weight:700;cursor:pointer;margin-left:auto}
+.c-add-msg{font-size:13px;margin-top:10px;min-height:0}
+.c-edit{padding:8px 12px;background:transparent;border:1px solid var(--blue);color:var(--blue2);border-radius:8px;font-size:12px;font-weight:600;cursor:pointer}
+.c-edit:hover{background:rgba(59,130,246,.15)}
+.c-edit-box{margin-top:10px;padding-top:10px;border-top:1px solid var(--line);width:100%}
 .c-search:focus{outline:none;border-color:var(--blue)}
 .c-item{display:flex;align-items:center;gap:12px;padding:12px;border:1px solid var(--line);border-radius:12px;margin-bottom:8px;background:var(--bg2)}
 .c-info{flex:1;min-width:0}
@@ -439,10 +455,20 @@ canvas{max-width:100%}
 <div class="mbg" id="cmodal"><div class="modal3" style="max-width:640px">
   <div class="m3-head"><div><h3><i class="ti ti-clipboard-check" style="margin-right:6px"></i>Conferencia</h3><span id="c-sub"></span></div><button class="m3-x" id="c-close">&times;</button></div>
   <div class="vm-body">
-    <div style="font-size:13px;color:var(--txt3);margin-bottom:12px">Revise os veiculos em manutencao. Marque <b style="color:var(--green)">Saiu</b> para os que voltaram a operar, ou <b style="color:var(--txt2)">Ainda esta</b> para manter parado.</div>
+    <button id="c-toggle-add" class="c-add-toggle"><i class="ti ti-plus"></i> Incluir manutencao</button>
+    <div id="c-add-box" class="c-add-box" style="display:none">
+      <div class="c-add-row"><input class="c-inp-placa" id="c-placa" placeholder="Placa" maxlength="8"/><input class="c-inp-mot" id="c-motivo" placeholder="Motivo / observacao"/></div>
+      <div class="c-add-row2">
+        <div class="c-tipos"><label class="m3-chk"><input type="checkbox" id="c-chk-corr"> Corretiva</label><label class="m3-chk"><input type="checkbox" id="c-chk-prev"> Preventiva</label><label class="m3-chk sev-chk"><input type="checkbox" id="c-chk-sev"> Severa</label></div>
+        <div class="c-prev-fld"><label>Previsao</label><input type="date" id="c-prev"/></div>
+        <button class="c-add-btn" id="c-add">+ Sinalizar</button>
+      </div>
+      <div class="c-add-msg" id="c-add-msg"></div>
+    </div>
+    <div style="font-size:13px;color:var(--txt3);margin:4px 0 12px">Revise os veiculos em manutencao. <b style="color:var(--green)">Saiu</b> = voltou a operar, <b style="color:var(--txt2)">Ainda esta</b> = mantem parado, <b style="color:var(--blue2)">editar</b> = ajusta tipo/motivo/previsao.</div>
     <input id="c-search" class="c-search" placeholder="Buscar placa, base, perfil, tipo ou motivo..."/>
-    <div id="c-list" style="max-height:400px;overflow-y:auto"></div>
-    <div id="c-done" style="display:none;text-align:center;padding:30px;color:var(--green);font-size:15px"><i class="ti ti-circle-check" style="font-size:32px;display:block;margin-bottom:8px"></i>Tudo conferido! Nenhum veiculo pendente.</div>
+    <div id="c-list" style="max-height:360px;overflow-y:auto"></div>
+    <div id="c-done" style="display:none;text-align:center;padding:30px;color:var(--green);font-size:15px"><i class="ti ti-circle-check" style="font-size:32px;display:block;margin-bottom:8px"></i>Nenhum veiculo em manutencao no momento.</div>
   </div>
 </div></div>
 
@@ -859,12 +885,51 @@ function renderConf(){
   list.innerHTML=man.map(({v,uf})=>{
     const d=daysIn(v);const dtxt=d===0?'entrou hoje':d+'d parado';
     const dcol=d>=15?'#fca5a5':(d>=7?'#fcd34d':'var(--txt2)');
-    return '<div class="c-item" data-p="'+v.placa+'"><div class="c-info"><div class="c-top"><span class="tplate2">'+v.placa+'</span><span class="pf-tag">'+v.perfil+'</span>'+tipoBadges(v)+'</div><div class="c-meta">'+uf+' &middot; '+v.base+' &middot; <b style="color:'+dcol+'">'+dtxt+'</b></div><div class="c-mot">'+(v.motivo||v.detalhe||'sem motivo informado')+'</div></div><div class="c-acts"><button class="c-stay" data-p="'+v.placa+'">Ainda esta</button><button class="c-out" data-p="'+v.placa+'">Saiu</button></div></div>';
+    return '<div class="c-item" data-p="'+v.placa+'"><div class="c-info"><div class="c-top"><span class="tplate2">'+v.placa+'</span><span class="pf-tag">'+v.perfil+'</span>'+tipoBadges(v)+'</div><div class="c-meta">'+uf+' &middot; '+v.base+' &middot; <b style="color:'+dcol+'">'+dtxt+'</b></div><div class="c-mot">'+(v.motivo||v.detalhe||'sem motivo informado')+'</div><div class="c-edit-wrap" id="cedit-'+v.placa+'"></div></div><div class="c-acts"><button class="c-edit" data-p="'+v.placa+'">editar</button><button class="c-stay" data-p="'+v.placa+'">Ainda esta</button><button class="c-out" data-p="'+v.placa+'">Saiu</button></div></div>';
   }).join('');
   list.querySelectorAll('.c-out').forEach(b=>b.onclick=()=>{const r=findP(b.dataset.p);if(r){histFechar(r.v.placa);r.v.status='OK';delete r.v.motivo;delete r.v.prev;delete r.v.entrada;r.v.tipos_manut='';save();pushVeiculo(r.v.placa);renderConf();refreshAll();}});
   list.querySelectorAll('.c-stay').forEach(b=>b.onclick=()=>{const it=b.closest('.c-item');it.style.opacity='.4';it.querySelectorAll('button').forEach(x=>x.disabled=true);b.textContent='✓ Confirmado';updateConfBadge();});
+  list.querySelectorAll('.c-edit').forEach(b=>b.onclick=()=>toggleCEdit(b.dataset.p));
 }
-document.getElementById('c-search').addEventListener('input',renderConf);
+function toggleCEdit(placa){
+  const wrap=document.getElementById('cedit-'+placa);if(!wrap)return;
+  if(wrap.innerHTML){wrap.innerHTML='';return;}
+  const r=findP(placa);if(!r)return;const v=r.v;
+  const sev=v.status==='SEVERA',t=(v.tipos_manut||'').split(',');
+  wrap.innerHTML='<div class="c-edit-box"><div class="c-tipos"><label class="m3-chk"><input type="checkbox" class="ce-corr" '+(!sev&&t.includes('corretiva')?'checked':'')+'> Corretiva</label><label class="m3-chk"><input type="checkbox" class="ce-prev" '+(!sev&&t.includes('preventiva')?'checked':'')+'> Preventiva</label><label class="m3-chk sev-chk"><input type="checkbox" class="ce-sev" '+(sev?'checked':'')+'> Severa</label></div><div class="c-add-row" style="margin-top:10px"><input class="c-inp-mot ce-mot" placeholder="Motivo" value="'+((v.motivo||v.detalhe||'').replace(/"/g,'&quot;'))+'"/><input type="date" class="ce-prev-d" value="'+(v.prev||'')+'" style="background:var(--surf);border:1px solid var(--line);color:var(--txt);padding:8px 10px;border-radius:9px;color-scheme:dark"/></div><button class="c-add-btn ce-save" style="margin-top:10px">Salvar alteracoes</button></div>';
+  const corr=wrap.querySelector('.ce-corr'),prev=wrap.querySelector('.ce-prev'),sv=wrap.querySelector('.ce-sev');
+  sv.addEventListener('change',function(){if(this.checked){corr.checked=false;prev.checked=false;}});
+  corr.addEventListener('change',function(){if(this.checked)sv.checked=false;});
+  prev.addEventListener('change',function(){if(this.checked)sv.checked=false;});
+  wrap.querySelector('.ce-save').onclick=()=>{
+    const isSev=sv.checked;let tipos=[];if(!isSev){if(corr.checked)tipos.push('corretiva');if(prev.checked)tipos.push('preventiva');}
+    if(!isSev&&!tipos.length){alert('Marque ao menos um tipo.');return;}
+    v.status=isSev?'SEVERA':'MANUTENCAO';v.tipos_manut=tipos.join(',');
+    const mot=wrap.querySelector('.ce-mot').value.trim();v.motivo=mot;
+    const pv=wrap.querySelector('.ce-prev-d').value;if(pv)v.prev=pv;else delete v.prev;
+    save();pushVeiculo(v.placa);renderConf();refreshAll();
+  };
+}
+// ---- incluir manutencao na conferencia ----
+document.getElementById('c-toggle-add').onclick=()=>{const box=document.getElementById('c-add-box');box.style.display=box.style.display==='none'?'':'none';};
+document.getElementById('c-chk-sev').addEventListener('change',function(){if(this.checked){document.getElementById('c-chk-corr').checked=false;document.getElementById('c-chk-prev').checked=false;}});
+document.getElementById('c-chk-corr').addEventListener('change',function(){if(this.checked)document.getElementById('c-chk-sev').checked=false;});
+document.getElementById('c-chk-prev').addEventListener('change',function(){if(this.checked)document.getElementById('c-chk-sev').checked=false;});
+document.getElementById('c-add').onclick=()=>{
+  const inp=document.getElementById('c-placa').value.trim().toUpperCase(),mot=document.getElementById('c-motivo').value.trim(),prev=document.getElementById('c-prev').value;
+  const sev=document.getElementById('c-chk-sev').checked,corr=document.getElementById('c-chk-corr').checked,prevt=document.getElementById('c-chk-prev').checked;
+  const msg=document.getElementById('c-add-msg');
+  if(!inp){msg.style.color=PAL.red;msg.textContent='Digite uma placa.';return;}
+  const r=findP(inp);if(!r){msg.style.color=PAL.red;msg.textContent='Placa nao encontrada.';return;}
+  if(!sev&&!corr&&!prevt){msg.style.color=PAL.red;msg.textContent='Marque ao menos um tipo.';return;}
+  let tipos=[];if(!sev){if(corr)tipos.push('corretiva');if(prevt)tipos.push('preventiva');}
+  r.v.status=sev?'SEVERA':'MANUTENCAO';r.v.tipos_manut=tipos.join(',');if(mot)r.v.motivo=mot;if(prev)r.v.prev=prev;if(!r.v.entrada)r.v.entrada=today();
+  save();pushVeiculo(r.v.placa);histAbrir(r.v,r.uf);
+  document.getElementById('c-placa').value='';document.getElementById('c-motivo').value='';document.getElementById('c-prev').value='';
+  document.getElementById('c-chk-sev').checked=false;document.getElementById('c-chk-corr').checked=false;document.getElementById('c-chk-prev').checked=false;
+  msg.style.color=PAL.green;msg.textContent='Placa '+inp+' incluida em manutencao.';
+  renderConf();refreshAll();
+};
 function openConf(){document.getElementById('cmodal').classList.add('open');document.getElementById('c-search').value='';renderConf();}
 function updateConfBadge(){const n=manAll().length;const bd=document.getElementById('conf-badge');if(n>0){bd.style.display='';bd.textContent=n;}else{bd.style.display='none';}}
 document.getElementById('btn-conf').onclick=openConf;
