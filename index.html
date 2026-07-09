@@ -579,8 +579,9 @@ function rebuildFromRows(rows){
 }
 function vToRow(v,uf){const r={uf};SBFIELDS.forEach(f=>{if(f==='uf')return;let val=v[f];if((f==='entrada'||f==='prev')&&(!val))val=null;if(val==='')val=(f==='entrada'||f==='prev')?null:'';r[f]=val;});return r;}
 async function pushVeiculo(placa){
-  if(!sbOk)return;
   const r=findP(placa);if(!r)return;
+  if(r.v.status!=='OK')histSync(r.v); // mantem historico em aberto atualizado
+  if(!sbOk)return;
   try{const row=vToRow(r.v,r.uf);row.updated_at=new Date().toISOString();await sb.from('veiculos').upsert(row,{onConflict:'placa'});}
   catch(e){console.warn('Falha ao sincronizar',placa,e);}
 }
@@ -632,7 +633,7 @@ async function histAbrir(v,uf){
   // registra entrada na oficina (so se nao houver uma aberta para a placa)
   const aberta=HIST.find(h=>h.placa===v.placa&&!h.saida);
   if(aberta)return;
-  const rec={placa:v.placa,base:v.base,uf:uf,motivo:v.motivo||v.detalhe||null,severa:v.status==='SEVERA',tipos:v.tipos_manut||'',andamento:v.andamento||'',entrada:v.entrada||today(),saida:null,dias:null};
+  const rec={placa:v.placa,base:v.base,uf:uf,motivo:v.motivo||v.detalhe||null,severa:v.status==='SEVERA',tipos:v.tipos_manut||'',andamento:v.andamento||'',prev:v.prev||null,entrada:v.entrada||today(),saida:null,dias:null};
   if(sbOk){try{const {data,error}=await sb.from('manutencoes').insert(rec).select().single();if(!error&&data){HIST.unshift(data);saveHist();return;}}catch(e){console.warn('hist abrir',e);}}
   rec.id='local-'+Date.now();HIST.unshift(rec);saveHist();
 }
@@ -646,6 +647,13 @@ async function histFechar(placa){
 async function histSetSevera(placa,severa){
   const aberta=HIST.find(h=>h.placa===placa&&!h.saida);if(!aberta)return;aberta.severa=severa;saveHist();
   if(sbOk&&typeof aberta.id==='number'){try{await sb.from('manutencoes').update({severa:severa}).eq('id',aberta.id);}catch(e){}}
+}
+// mantem o registro em aberto do historico atualizado com o que foi editado no veiculo
+async function histSync(v){
+  const aberta=HIST.find(h=>h.placa===v.placa&&!h.saida);if(!aberta)return;
+  const upd={motivo:v.motivo||v.detalhe||null,severa:v.status==='SEVERA',tipos:v.tipos_manut||'',andamento:v.andamento||'',prev:v.prev||null,entrada:v.entrada||aberta.entrada};
+  Object.assign(aberta,upd);saveHist();
+  if(sbOk&&typeof aberta.id==='number'){try{await sb.from('manutencoes').update(upd).eq('id',aberta.id);}catch(e){console.warn('hist sync',e);}}
 }
 function histResumo(placa){
   const regs=HIST.filter(h=>h.placa===placa).sort((a,b)=>(b.entrada||'').localeCompare(a.entrada||''));
