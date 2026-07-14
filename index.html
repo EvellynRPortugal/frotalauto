@@ -204,8 +204,9 @@ canvas{max-width:100%}
 .mrow-top{display:flex;align-items:center;gap:9px;padding:9px 2px;cursor:pointer;transition:.12s}
 .mrow-top:hover{background:rgba(59,130,246,.06)}
 .mrow-p{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:13px;color:var(--txt);letter-spacing:.5px;flex-shrink:0}
-.mrow-d{font-size:12px;font-weight:700;flex-shrink:0;min-width:34px}
-.mrow-pv{font-size:11.5px;margin-left:auto;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:130px}
+.proj-mini{font-size:9.5px;font-weight:800;padding:2px 6px;border-radius:6px;letter-spacing:.4px;flex-shrink:0;white-space:nowrap}
+.mrow-d{font-size:12px;font-weight:700;flex-shrink:0;min-width:30px;margin-left:auto}
+.mrow-pv{font-size:11.5px;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:118px;flex-shrink:0}
 .mrow-cv{font-size:9px;color:var(--txt3);transition:.2s;flex-shrink:0}
 .mrow.open .mrow-cv{transform:rotate(180deg)}
 .mrow-det{display:none;padding:2px 2px 12px 22px}
@@ -362,7 +363,7 @@ canvas{max-width:100%}
     <span class="hdr-pill"><b id="h-disp">95%</b> disponibilidade</span>
     <span class="hdr-pill" id="sync-status"><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#6b7f9e;margin-right:6px"></span>Conectando...</span>
     <button class="hdr-pill" id="btn-conf" style="cursor:pointer;border:1px solid var(--blue);background:rgba(59,130,246,.12);color:var(--blue2);font-weight:600"><i class="ti ti-clipboard-check" style="margin-right:5px"></i>Conferencia <span id="conf-badge" style="display:none;background:var(--amber);color:#0a1628;border-radius:9px;padding:0 7px;font-size:11px;margin-left:4px"></span></button>
-    <button class="hdr-pill" id="btn-xls" title="Baixar planilha dos veiculos em manutencao" style="cursor:pointer;padding:6px 11px;color:var(--txt3);display:inline-flex;align-items:center;gap:4px"><i class="ti ti-file-spreadsheet"></i><i class="ti ti-arrow-down" style="font-size:12px"></i></button>
+    <button class="hdr-pill" id="btn-xls" title="Baixar planilha dos veiculos em manutencao" style="cursor:pointer;padding:6px 12px;color:var(--green);border:1px solid rgba(16,185,129,.45);background:rgba(16,185,129,.1);display:inline-flex;align-items:center;gap:5px;font-weight:600"><i class="ti ti-download"></i>Excel <span style="font-size:10px">&#9660;</span></button>
   </div>
 </header>
 
@@ -987,6 +988,10 @@ function baseKey(v){return isTransf(v)?'TRANSFERENCIA':v.base;}
 // cores por projeto (flag visual)
 const PROJ_COLORS={'PAGUE MENOS':'#f59e0b','AZUL':'#3b82f6','CASAS BAHIA':'#ef4444','MAGAZINE LUIZA':'#a78bfa','CARGILL':'#10b981','LUFT':'#2dd4bf','BBRAUN':'#60a5fa','COMERCIAL':'#9fb2cc','FROTA':'#6b7f9e'};
 function projColor(p){p=(p||'').toUpperCase();for(const k in PROJ_COLORS){if(p.indexOf(k)>=0)return PROJ_COLORS[k];}return '#6b7f9e';}
+// sigla curta para caber na linha compacta
+const PROJ_SIGLA={'PAGUE MENOS':'PM','MAGAZINE LUIZA':'MAGALU','CASAS BAHIA':'C.BAHIA','COMERCIAL':'COMERC','CARGILL':'CARGILL','BBRAUN':'BBRAUN','AZUL':'AZUL','LUFT':'LUFT','FROTA':'FROTA'};
+function projSigla(p){p=(p||'').toUpperCase();for(const k in PROJ_SIGLA){if(p.indexOf(k)>=0)return PROJ_SIGLA[k];}return p.length>7?p.slice(0,7):p;}
+function projMini(v){const p=v.projeto||'';if(!p||p==='-')return '';const c=projColor(p);return '<span class="proj-mini" style="background:'+c+'22;color:'+c+'" title="'+p+'">'+projSigla(p)+'</span>';}
 function projBadge(v){const p=v.projeto||'';if(!p||p==='-')return '';const c=projColor(p);return '<span class="proj-badge" style="background:'+c+'22;color:'+c+';border:1px solid '+c+'55">'+p+'</span>';}
 function fillMF(){const s=document.getElementById('mf-uf');if(s.options.length>1)return;Object.keys(DATA).filter(u=>DATA[u].total>0).sort().forEach(u=>{const o=document.createElement('option');o.value=u;o.textContent=u+' ('+DATA[u].total+')';s.appendChild(o);});s.onchange=renderManut;}
 const CARDF={}; // filtros ativos de cada card: {BASE:{proj,perfil,tipo}}
@@ -1053,6 +1058,7 @@ function renderManut(){
       return '<div class="mrow" data-x="'+v.placa+'">'
         +'<div class="mrow-top"><span class="md3 '+(v.status==='SEVERA'?'sev':'man')+'"></span>'
         +'<span class="mrow-p">'+v.placa+'</span>'
+        +projMini(v)
         +'<span class="mrow-d" style="color:'+dcol+'">'+dtxt+'</span>'
         +'<span class="mrow-pv" style="color:'+pvc+'">'+pv+'</span>'
         +'<span class="mrow-cv">&#9662;</span></div>'
