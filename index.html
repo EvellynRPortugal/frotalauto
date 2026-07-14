@@ -322,6 +322,15 @@ canvas{max-width:100%}
 .c-inp-placa{font-family:'JetBrains Mono',monospace;font-weight:700;letter-spacing:1px;text-transform:uppercase;width:130px;padding:10px 12px;background:var(--surf);border:1px solid var(--line);color:var(--txt);border-radius:9px;font-size:14px}
 .c-inp-mot{flex:1;min-width:150px;padding:10px 12px;background:var(--surf);border:1px solid var(--line);color:var(--txt);border-radius:9px;font-size:14px}
 .c-inp-of{flex:1;min-width:150px;padding:10px 12px;background:var(--surf);border:1px solid var(--line);color:var(--txt);border-radius:9px;font-size:14px}
+.c-of-mng{background:var(--bg2);border:1px solid var(--line);color:var(--txt3);border-radius:9px;width:40px;font-size:16px;cursor:pointer;flex-shrink:0}
+.c-of-mng:hover{border-color:var(--blue);color:var(--blue2)}
+.of-row{display:flex;align-items:center;gap:8px;padding:11px 12px;border:1px solid var(--line);border-radius:10px;margin-bottom:7px;background:var(--bg2)}
+.of-n{flex:1;font-size:14px;font-weight:600;color:var(--txt)}
+.of-u{font-size:10px;font-weight:700;background:rgba(245,158,11,.18);color:var(--amber);padding:2px 8px;border-radius:8px}
+.of-e,.of-d{padding:6px 10px;border-radius:7px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid var(--line);background:transparent;color:var(--txt2)}
+.of-e:hover{border-color:var(--blue);color:var(--blue2)}
+.of-d{border-color:rgba(239,68,68,.35);color:#fca5a5}
+.of-d:hover{background:rgba(239,68,68,.15)}
 .c-inp-of:focus,.c-inp-mot:focus{outline:none;border-color:var(--blue)}
 .c-add-row2{display:flex;gap:14px;align-items:flex-end;flex-wrap:wrap}
 .c-tipos{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
@@ -566,7 +575,7 @@ canvas{max-width:100%}
     <button id="c-toggle-add" class="c-add-toggle"><i class="ti ti-plus"></i> Incluir manutencao</button>
     <div id="c-add-box" class="c-add-box" style="display:none">
       <div class="c-add-row"><input class="c-inp-placa" id="c-placa" placeholder="Placa" maxlength="8"/><input class="c-inp-mot" id="c-motivo" placeholder="Motivo / observacao"/></div>
-      <div class="c-add-row"><input class="c-inp-of" id="c-oficina" list="dl-oficinas" placeholder="Oficina (opcional)" autocomplete="off"/><span id="dl-host"></span></div>
+      <div class="c-add-row"><select class="c-inp-of c-sel" id="c-oficina"></select><button type="button" class="c-of-mng" id="c-of-mng" title="Gerenciar oficinas">&#9881;</button></div>
       <div class="c-add-row2">
         <div class="c-tipos"><label class="m3-chk"><input type="checkbox" id="c-chk-corr"> Corretiva</label><label class="m3-chk"><input type="checkbox" id="c-chk-prev"> Preventiva</label><label class="m3-chk sev-chk"><input type="checkbox" id="c-chk-sev"> Severa</label></div>
       </div>
@@ -582,6 +591,16 @@ canvas{max-width:100%}
     <input id="c-search" class="c-search" placeholder="Buscar placa, base, perfil, tipo ou motivo..."/>
     <div id="c-list" style="max-height:360px;overflow-y:auto"></div>
     <div id="c-done" style="display:none;text-align:center;padding:30px;color:var(--green);font-size:15px"><i class="ti ti-circle-check" style="font-size:32px;display:block;margin-bottom:8px"></i>Nenhum veiculo em manutencao no momento.</div>
+  </div>
+</div></div>
+
+<!-- modal gerenciar oficinas -->
+<div class="mbg" id="ofmodal"><div class="modal3" style="max-width:460px">
+  <div class="m3-head"><div><h3>Oficinas cadastradas</h3><span id="of-sub"></span></div><button class="m3-x" id="of-close">&times;</button></div>
+  <div class="vm-body">
+    <div class="c-add-row"><input class="c-inp-mot" id="of-nova" placeholder="Nome da nova oficina"/><button class="c-add-btn" id="of-add" style="margin-left:0">Cadastrar</button></div>
+    <div id="of-msg" style="font-size:12px;min-height:16px;margin:6px 0"></div>
+    <div id="of-list" style="max-height:340px;overflow-y:auto;margin-top:6px"></div>
   </div>
 </div></div>
 
@@ -601,10 +620,47 @@ function save(){localStorage.setItem('lauto_v7',JSON.stringify(DATA));}
 const SB_URL='https://tvpqdpqmainlhenxpsap.supabase.co';
 const SB_KEY='sb_publishable_7V2LryjNG-2VZnqy4QyVFg_cJeHqm38';
 let sb=null, sbOk=false;
+// ---- cadastro de oficinas (compartilhado) ----
+let OFICINAS=JSON.parse(localStorage.getItem('lauto_oficinas')||'[]');
+function saveOfic(){localStorage.setItem('lauto_oficinas',JSON.stringify(OFICINAS));}
+async function loadOficinas(){
+  if(!sbOk)return;
+  try{const {data,error}=await sb.from('oficinas').select('*').order('nome');if(error)throw error;OFICINAS=data||[];saveOfic();}
+  catch(e){console.warn('Falha ao carregar oficinas',e);}
+}
+async function addOficina(nome){
+  nome=(nome||'').trim();if(!nome)return null;
+  const existe=OFICINAS.find(o=>o.nome.toLowerCase()===nome.toLowerCase());
+  if(existe)return existe;
+  if(sbOk){try{const {data,error}=await sb.from('oficinas').insert({nome}).select().single();if(!error&&data){OFICINAS.push(data);OFICINAS.sort((a,b)=>a.nome.localeCompare(b.nome));saveOfic();return data;}}catch(e){console.warn('add oficina',e);}}
+  const loc={id:'local-'+Date.now(),nome};OFICINAS.push(loc);OFICINAS.sort((a,b)=>a.nome.localeCompare(b.nome));saveOfic();return loc;
+}
+async function updOficina(id,nome){
+  nome=(nome||'').trim();if(!nome)return;
+  const o=OFICINAS.find(x=>x.id===id);if(!o)return;
+  const antigo=o.nome;o.nome=nome;OFICINAS.sort((a,b)=>a.nome.localeCompare(b.nome));saveOfic();
+  if(sbOk&&typeof id==='number'){try{await sb.from('oficinas').update({nome}).eq('id',id);
+    // atualiza os veiculos que usavam o nome antigo
+    for(const uf in DATA)for(const v of DATA[uf].veiculos){if(v.oficina===antigo){v.oficina=nome;pushVeiculo(v.placa);}}
+    save();
+  }catch(e){console.warn('upd oficina',e);}}
+}
+async function delOficina(id){
+  const i=OFICINAS.findIndex(x=>x.id===id);if(i<0)return;
+  OFICINAS.splice(i,1);saveOfic();
+  if(sbOk&&typeof id==='number'){try{await sb.from('oficinas').delete().eq('id',id);}catch(e){console.warn('del oficina',e);}}
+}
+function oficinaOptions(sel){
+  let o='<option value="">— sem oficina —</option>';
+  OFICINAS.forEach(x=>{o+='<option value="'+x.nome.replace(/"/g,'&quot;')+'"'+(sel===x.nome?' selected':'')+'>'+x.nome+'</option>';});
+  o+='<option value="__nova__">+ Cadastrar nova oficina...</option>';
+  return o;
+}
+function subscribeOficRealtime(){
+  if(!sb)return;
+  sb.channel('oficinas-rt').on('postgres_changes',{event:'*',schema:'public',table:'oficinas'},()=>{loadOficinas().then(()=>{if(document.getElementById('cmodal').classList.contains('open'))renderConf();});}).subscribe();
+}
 const SBFIELDS=['placa','uf','base','cidade','tipo','perfil','marca','modelo','projeto','ano','status','motivo','entrada','prev','detalhe','tipo_rota','tipos_manut','andamento','conferido_em','oficina'];
-// oficinas ja usadas (para sugestao no campo)
-function oficinasUsadas(){const s=new Set();for(const uf in DATA)DATA[uf].veiculos.forEach(v=>{if(v.oficina)s.add(v.oficina);});HIST.forEach(h=>{if(h.oficina)s.add(h.oficina);});return [...s].sort();}
-function oficinaDatalist(id){return '<datalist id="'+id+'">'+oficinasUsadas().map(o=>'<option value="'+o.replace(/"/g,'&quot;')+'">').join('')+'</datalist>';}
 const ANDAMENTOS={'orcamento':'Aguardando orcamento','diagnostico':'Em diagnostico','aprovacao':'Aguardando aprovacao','peca':'Aguardando peca','andamento':'Em andamento'};
 function andamentoLabel(k){return ANDAMENTOS[k]||'';}
 function andamentoOptions(sel){let o='<option value="">— sem status (usar previsao) —</option>';for(const k in ANDAMENTOS){o+='<option value="'+k+'"'+(sel===k?' selected':'')+'>'+ANDAMENTOS[k]+'</option>';}return o;}
@@ -638,6 +694,8 @@ async function loadFromSupabase(){
     subscribeRealtime();
     await loadHistorico();
     subscribeHistRealtime();
+    await loadOficinas();
+    subscribeOficRealtime();
     refreshAll();
     maybeAutoConf();
   }catch(e){console.warn('Supabase indisponivel:',e);setStatus('offline','Sem conexao — usando dados locais');}
@@ -1206,8 +1264,16 @@ function toggleCEdit(placa){
   if(wrap.innerHTML){wrap.innerHTML='';return;}
   const r=findP(placa);if(!r)return;const v=r.v;
   const sev=v.status==='SEVERA',t=(v.tipos_manut||'').split(',');
-  wrap.innerHTML='<div class="c-edit-box"><div class="c-tipos"><label class="m3-chk"><input type="checkbox" class="ce-corr" '+(!sev&&t.includes('corretiva')?'checked':'')+'> Corretiva</label><label class="m3-chk"><input type="checkbox" class="ce-prev" '+(!sev&&t.includes('preventiva')?'checked':'')+'> Preventiva</label><label class="m3-chk sev-chk"><input type="checkbox" class="ce-sev" '+(sev?'checked':'')+'> Severa</label></div><div class="c-add-row" style="margin-top:10px"><input class="c-inp-mot ce-mot" placeholder="Motivo" value="'+((v.motivo||v.detalhe||'').replace(/"/g,'&quot;'))+'"/><input class="c-inp-of ce-ofc" list="dl-of-'+placa+'" placeholder="Oficina (opcional)" autocomplete="off" value="'+((v.oficina||'').replace(/"/g,'&quot;'))+'"/>'+oficinaDatalist('dl-of-'+placa)+'</div><div class="c-add-row2" style="margin-top:10px"><div class="c-prev-fld"><label>Entrada na oficina</label><input type="date" class="ce-entrada" value="'+(v.entrada||'')+'"/></div><div class="c-prev-fld"><label>Status / andamento</label><select class="c-sel ce-and">'+andamentoOptions(v.andamento||'')+'</select></div><div class="c-prev-fld ce-prev-wrap"><label>Previsao</label><input type="date" class="ce-prev-d" value="'+(v.prev||'')+'"/></div></div><button class="c-add-btn ce-save" style="margin-top:12px">Salvar alteracoes</button></div>';
+  wrap.innerHTML='<div class="c-edit-box"><div class="c-tipos"><label class="m3-chk"><input type="checkbox" class="ce-corr" '+(!sev&&t.includes('corretiva')?'checked':'')+'> Corretiva</label><label class="m3-chk"><input type="checkbox" class="ce-prev" '+(!sev&&t.includes('preventiva')?'checked':'')+'> Preventiva</label><label class="m3-chk sev-chk"><input type="checkbox" class="ce-sev" '+(sev?'checked':'')+'> Severa</label></div><div class="c-add-row" style="margin-top:10px"><input class="c-inp-mot ce-mot" placeholder="Motivo" value="'+((v.motivo||v.detalhe||'').replace(/"/g,'&quot;'))+'"/><select class="c-inp-of c-sel ce-ofc">'+oficinaOptions(v.oficina||'')+'</select></div><div class="c-add-row2" style="margin-top:10px"><div class="c-prev-fld"><label>Entrada na oficina</label><input type="date" class="ce-entrada" value="'+(v.entrada||'')+'"/></div><div class="c-prev-fld"><label>Status / andamento</label><select class="c-sel ce-and">'+andamentoOptions(v.andamento||'')+'</select></div><div class="c-prev-fld ce-prev-wrap"><label>Previsao</label><input type="date" class="ce-prev-d" value="'+(v.prev||'')+'"/></div></div><button class="c-add-btn ce-save" style="margin-top:12px">Salvar alteracoes</button></div>';
   const corr=wrap.querySelector('.ce-corr'),prev=wrap.querySelector('.ce-prev'),sv=wrap.querySelector('.ce-sev'),and=wrap.querySelector('.ce-and'),pwrap=wrap.querySelector('.ce-prev-wrap');
+  const ofSel=wrap.querySelector('.ce-ofc');
+  ofSel.addEventListener('change',async function(){
+    if(this.value==='__nova__'){
+      const nome=prompt('Nome da nova oficina:');
+      if(nome&&nome.trim()){const o=await addOficina(nome);this.innerHTML=oficinaOptions(o?o.nome:'');if(o)this.value=o.nome;}
+      else{this.value=v.oficina||'';}
+    }
+  });
   function updVis(){pwrap.style.display=and.value?'none':'';}updVis();
   and.addEventListener('change',updVis);
   sv.addEventListener('change',function(){if(this.checked){corr.checked=false;prev.checked=false;}});
@@ -1218,7 +1284,7 @@ function toggleCEdit(placa){
     if(!isSev&&!tipos.length){alert('Marque ao menos um tipo.');return;}
     v.status=isSev?'SEVERA':'MANUTENCAO';v.tipos_manut=tipos.join(',');
     v.motivo=wrap.querySelector('.ce-mot').value.trim();
-    v.oficina=wrap.querySelector('.ce-ofc').value.trim();
+    v.oficina=(wrap.querySelector('.ce-ofc').value==='__nova__'?'':wrap.querySelector('.ce-ofc').value);
     const ent=wrap.querySelector('.ce-entrada').value;if(ent)v.entrada=ent;
     v.andamento=and.value;
     if(and.value){delete v.prev;}else{const pv=wrap.querySelector('.ce-prev-d').value;if(pv)v.prev=pv;else delete v.prev;}
@@ -1226,7 +1292,59 @@ function toggleCEdit(placa){
   };
 }
 // ---- incluir manutencao na conferencia ----
-document.getElementById('c-toggle-add').onclick=()=>{const box=document.getElementById('c-add-box');box.style.display=box.style.display==='none'?'':'none';if(box.style.display!=='none'){document.getElementById('c-andamento').innerHTML=andamentoOptions('');document.getElementById('c-entrada').value=today();document.getElementById('dl-host').innerHTML=oficinaDatalist('dl-oficinas');updCPrevVis();}};
+document.getElementById('c-toggle-add').onclick=()=>{const box=document.getElementById('c-add-box');box.style.display=box.style.display==='none'?'':'none';if(box.style.display!=='none'){document.getElementById('c-andamento').innerHTML=andamentoOptions('');document.getElementById('c-entrada').value=today();document.getElementById('c-oficina').innerHTML=oficinaOptions('');updCPrevVis();}};
+// escolher "+ cadastrar nova" abre o prompt
+document.getElementById('c-oficina').addEventListener('change',async function(){
+  if(this.value==='__nova__'){
+    const nome=prompt('Nome da nova oficina:');
+    if(nome&&nome.trim()){
+      const o=await addOficina(nome);
+      this.innerHTML=oficinaOptions(o?o.nome:'');
+      if(o)this.value=o.nome;
+    }else{this.value='';}
+  }
+});
+document.getElementById('c-of-mng').onclick=openOfic;
+/* ---- gerenciar oficinas ---- */
+function usoOficina(nome){let n=0;for(const uf in DATA)DATA[uf].veiculos.forEach(v=>{if(v.oficina===nome&&v.status!=='OK')n++;});return n;}
+function renderOfic(){
+  const l=document.getElementById('of-list');
+  document.getElementById('of-sub').textContent=OFICINAS.length+' oficina'+(OFICINAS.length!==1?'s':'');
+  if(!OFICINAS.length){l.innerHTML='<div class="empty">Nenhuma oficina cadastrada ainda.</div>';return;}
+  l.innerHTML=OFICINAS.map(o=>{
+    const n=usoOficina(o.nome);
+    return '<div class="of-row" data-id="'+o.id+'"><span class="of-n">'+o.nome+'</span>'+(n?'<span class="of-u">'+n+' em uso</span>':'')+'<button class="of-e" data-id="'+o.id+'">editar</button><button class="of-d" data-id="'+o.id+'">excluir</button></div>';
+  }).join('');
+  l.querySelectorAll('.of-e').forEach(b=>b.onclick=async()=>{
+    const id=isNaN(+b.dataset.id)?b.dataset.id:+b.dataset.id;
+    const o=OFICINAS.find(x=>String(x.id)===String(b.dataset.id));if(!o)return;
+    const novo=prompt('Novo nome para "'+o.nome+'":',o.nome);
+    if(novo&&novo.trim()&&novo.trim()!==o.nome){await updOficina(o.id,novo.trim());renderOfic();refreshAll();}
+  });
+  l.querySelectorAll('.of-d').forEach(b=>b.onclick=async()=>{
+    const o=OFICINAS.find(x=>String(x.id)===String(b.dataset.id));if(!o)return;
+    const n=usoOficina(o.nome);
+    const aviso=n?'\n\nAtencao: '+n+' veiculo(s) em manutencao usam esta oficina. Eles ficarao sem oficina.':'';
+    if(confirm('Excluir a oficina "'+o.nome+'"?'+aviso)){await delOficina(o.id);renderOfic();}
+  });
+}
+function openOfic(){document.getElementById('ofmodal').classList.add('open');document.getElementById('of-msg').textContent='';document.getElementById('of-nova').value='';renderOfic();}
+document.getElementById('of-close').onclick=()=>{document.getElementById('ofmodal').classList.remove('open');
+  // atualiza os selects de oficina que estiverem abertos
+  const cs=document.getElementById('c-oficina');if(cs){const cur=cs.value;cs.innerHTML=oficinaOptions(cur);}
+};
+document.getElementById('ofmodal').onclick=e=>{if(e.target.id==='ofmodal')document.getElementById('of-close').click();};
+document.getElementById('of-add').onclick=async()=>{
+  const inp=document.getElementById('of-nova'),msg=document.getElementById('of-msg');
+  const nome=inp.value.trim();
+  if(!nome){msg.style.color=PAL.red;msg.textContent='Digite o nome da oficina.';return;}
+  const dup=OFICINAS.find(o=>o.nome.toLowerCase()===nome.toLowerCase());
+  if(dup){msg.style.color=PAL.amber;msg.textContent='Essa oficina ja esta cadastrada.';return;}
+  await addOficina(nome);inp.value='';
+  msg.style.color=PAL.green;msg.textContent='Oficina "'+nome+'" cadastrada.';
+  renderOfic();
+};
+document.getElementById('of-nova').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('of-add').click();});
 document.getElementById('c-chk-sev').addEventListener('change',function(){if(this.checked){document.getElementById('c-chk-corr').checked=false;document.getElementById('c-chk-prev').checked=false;}});
 document.getElementById('c-chk-corr').addEventListener('change',function(){if(this.checked)document.getElementById('c-chk-sev').checked=false;});
 document.getElementById('c-chk-prev').addEventListener('change',function(){if(this.checked)document.getElementById('c-chk-sev').checked=false;});
@@ -1235,7 +1353,7 @@ document.getElementById('c-andamento').addEventListener('change',updCPrevVis);
 document.getElementById('c-add').onclick=()=>{
   const inp=document.getElementById('c-placa').value.trim().toUpperCase(),mot=document.getElementById('c-motivo').value.trim(),prev=document.getElementById('c-prev').value;
   const and=document.getElementById('c-andamento').value,entrada=document.getElementById('c-entrada').value;
-  const ofc=document.getElementById('c-oficina').value.trim();
+  const ofcRaw=document.getElementById('c-oficina').value;const ofc=(ofcRaw==='__nova__'?'':ofcRaw);
   const sev=document.getElementById('c-chk-sev').checked,corr=document.getElementById('c-chk-corr').checked,prevt=document.getElementById('c-chk-prev').checked;
   const msg=document.getElementById('c-add-msg');
   if(!inp){msg.style.color=PAL.red;msg.textContent='Digite uma placa.';return;}
@@ -1247,7 +1365,7 @@ document.getElementById('c-add').onclick=()=>{
   r.v.andamento=and;if(and){delete r.v.prev;}else if(prev){r.v.prev=prev;}
   r.v.entrada=entrada||today();
   save();pushVeiculo(r.v.placa);histAbrir(r.v,r.uf);
-  document.getElementById('c-placa').value='';document.getElementById('c-motivo').value='';document.getElementById('c-prev').value='';document.getElementById('c-andamento').value='';document.getElementById('c-oficina').value='';document.getElementById('c-entrada').value=today();updCPrevVis();
+  document.getElementById('c-placa').value='';document.getElementById('c-motivo').value='';document.getElementById('c-prev').value='';document.getElementById('c-andamento').value='';document.getElementById('c-oficina').innerHTML=oficinaOptions('');document.getElementById('c-entrada').value=today();updCPrevVis();
   document.getElementById('c-chk-sev').checked=false;document.getElementById('c-chk-corr').checked=false;document.getElementById('c-chk-prev').checked=false;
   msg.style.color=PAL.green;msg.textContent='Placa '+inp+' incluida em manutencao.';
   renderConf();refreshAll();
