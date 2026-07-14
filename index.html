@@ -597,7 +597,7 @@ function save(){localStorage.setItem('lauto_v7',JSON.stringify(DATA));}
 const SB_URL='https://tvpqdpqmainlhenxpsap.supabase.co';
 const SB_KEY='sb_publishable_7V2LryjNG-2VZnqy4QyVFg_cJeHqm38';
 let sb=null, sbOk=false;
-const SBFIELDS=['placa','uf','base','cidade','tipo','perfil','marca','modelo','projeto','ano','status','motivo','entrada','prev','detalhe','tipo_rota','tipos_manut','andamento'];
+const SBFIELDS=['placa','uf','base','cidade','tipo','perfil','marca','modelo','projeto','ano','status','motivo','entrada','prev','detalhe','tipo_rota','tipos_manut','andamento','conferido_em'];
 const ANDAMENTOS={'orcamento':'Aguardando orcamento','diagnostico':'Em diagnostico','aprovacao':'Aguardando aprovacao','peca':'Aguardando peca','andamento':'Em andamento'};
 function andamentoLabel(k){return ANDAMENTOS[k]||'';}
 function andamentoOptions(sel){let o='<option value="">— sem status (usar previsao) —</option>';for(const k in ANDAMENTOS){o+='<option value="'+k+'"'+(sel===k?' selected':'')+'>'+ANDAMENTOS[k]+'</option>';}return o;}
@@ -612,7 +612,7 @@ function rebuildFromRows(rows){
   for(const uf in d)d[uf].veiculos.sort((a,b)=>(a.base+a.placa).localeCompare(b.base+b.placa));
   return d;
 }
-function vToRow(v,uf){const r={uf};SBFIELDS.forEach(f=>{if(f==='uf')return;let val=v[f];if((f==='entrada'||f==='prev')&&(!val))val=null;if(val==='')val=(f==='entrada'||f==='prev')?null:'';r[f]=val;});return r;}
+function vToRow(v,uf){const r={uf};const DATEF=['entrada','prev','conferido_em'];SBFIELDS.forEach(f=>{if(f==='uf')return;let val=v[f];const isDate=DATEF.includes(f);if(isDate&&!val)val=null;if(val==='')val=isDate?null:'';r[f]=val;});return r;}
 async function pushVeiculo(placa){
   const r=findP(placa);if(!r)return;
   if(r.v.status!=='OK')histSync(r.v); // mantem historico em aberto atualizado
@@ -1159,9 +1159,15 @@ document.getElementById('vm-save').onclick=()=>{const r=findP(vmPlaca);if(!r)ret
 /* ============ REFRESH GLOBAL ============ */
 /* ============ CONFERENCIA DA MANHA ============ */
 // ---- flag diaria de conferencia (bolinha vermelha) ----
-function confHoje(){const raw=localStorage.getItem('lauto_conf_check');if(!raw)return{dia:today(),placas:[]};try{const o=JSON.parse(raw);if(o.dia!==today())return{dia:today(),placas:[]};return o;}catch(e){return{dia:today(),placas:[]};}}
-function marcarConferido(placa){const c=confHoje();if(!c.placas.includes(placa))c.placas.push(placa);c.dia=today();localStorage.setItem('lauto_conf_check',JSON.stringify(c));}
-function foiConferido(placa){return confHoje().placas.includes(placa);}
+// ---- flag diaria de conferencia (COMPARTILHADA via Supabase) ----
+// conferido_em = data da ultima conferencia. Se for hoje -> verde. Senao -> vermelho.
+// Reset automatico: quando vira o dia, a data nao bate mais com hoje.
+function foiConferido(placa){const r=findP(placa);return !!(r&&r.v.conferido_em===today());}
+function marcarConferido(placa){
+  const r=findP(placa);if(!r)return;
+  r.v.conferido_em=today();
+  save();pushVeiculo(placa);
+}
 function renderConf(){
   const all=manAll().sort((a,b)=>(daysIn(b.v)||0)-(daysIn(a.v)||0));
   const list=document.getElementById('c-list'),done=document.getElementById('c-done');
@@ -1183,7 +1189,7 @@ function renderConf(){
     const dot='<span class="conf-dot '+(conf?'ok':'pend')+'" title="'+(conf?'conferido hoje':'a conferir')+'"></span>';
     return '<div class="c-item'+(conf?' conferido':'')+'" data-p="'+v.placa+'">'+dot+'<div class="c-info"><div class="c-top"><span class="tplate2">'+v.placa+'</span><span class="pf-tag">'+v.perfil+'</span>'+projBadge(v)+tipoBadges(v)+'</div><div class="c-meta">'+uf+' &middot; '+v.base+(isTransf(v)?' <span style="color:#a78bfa">(transf.)</span>':'')+' &middot; <b style="color:'+dcol+'">'+dtxt+'</b></div><div class="c-mot">'+(v.motivo||v.detalhe||'sem motivo informado')+'</div><div class="c-edit-wrap" id="cedit-'+v.placa+'"></div></div><div class="c-acts"><button class="c-edit" data-p="'+v.placa+'">editar</button><button class="c-stay" data-p="'+v.placa+'">Ainda esta</button><button class="c-out" data-p="'+v.placa+'">Saiu</button></div></div>';
   }).join('');
-  list.querySelectorAll('.c-out').forEach(b=>b.onclick=()=>{const r=findP(b.dataset.p);if(r){marcarConferido(r.v.placa);histFechar(r.v.placa);r.v.status='OK';delete r.v.motivo;delete r.v.prev;delete r.v.entrada;r.v.tipos_manut='';r.v.andamento='';save();pushVeiculo(r.v.placa);renderConf();refreshAll();}});
+  list.querySelectorAll('.c-out').forEach(b=>b.onclick=()=>{const r=findP(b.dataset.p);if(r){histFechar(r.v.placa);r.v.status='OK';delete r.v.motivo;delete r.v.prev;delete r.v.entrada;r.v.tipos_manut='';r.v.andamento='';r.v.conferido_em=today();save();pushVeiculo(r.v.placa);renderConf();refreshAll();}});
   list.querySelectorAll('.c-stay').forEach(b=>b.onclick=()=>{marcarConferido(b.dataset.p);renderConf();});
   list.querySelectorAll('.c-edit').forEach(b=>b.onclick=()=>toggleCEdit(b.dataset.p));
 }
@@ -1276,7 +1282,7 @@ function maybeAutoConf(){
   if(ultima!==hoje && manAll().length>0){localStorage.setItem('lauto_conf_dia',hoje);setTimeout(openConf,1200);}
 }
 
-function refreshAll(){updHeader();updateConfBadge();const av=id=>document.getElementById('view-'+id).classList.contains('active');if(av('dash'))renderDash();if(av('mapa')){drawMap();renderSP();}if(av('manut'))renderManut();if(av('veic')&&document.getElementById('vinner').style.display!=='none')renderVeic();if(av('reuniao')){drawReuMap();renderReu();}}
+function refreshAll(){updHeader();updateConfBadge();const av=id=>document.getElementById('view-'+id).classList.contains('active');if(av('dash'))renderDash();if(av('mapa')){drawMap();renderSP();}if(av('manut'))renderManut();if(av('veic')&&document.getElementById('vinner').style.display!=='none')renderVeic();if(av('reuniao')){drawReuMap();renderReu();}if(document.getElementById('cmodal').classList.contains('open')&&!document.querySelector('.c-edit-box'))renderConf();}
 updHeader();renderDash();
 loadFromSupabase();
 
