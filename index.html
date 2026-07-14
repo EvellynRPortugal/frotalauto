@@ -198,10 +198,18 @@ canvas{max-width:100%}
 .editb{background:transparent;border:1px solid var(--line);color:var(--txt2);font-size:12px;padding:5px 13px;border-radius:8px;cursor:pointer}
 .editb:hover{background:var(--surf2);color:var(--txt)}
 .mitem3{display:flex;gap:9px;padding:9px 0;border-bottom:1px solid rgba(35,57,92,.5)}
-/* filtros internos do card */
-.cf-bar{display:flex;gap:6px;flex-wrap:wrap;padding:10px 0 4px;align-items:center}
-.cf{background:var(--bg2);border:1px solid var(--line);color:var(--txt2);border-radius:8px;padding:5px 8px;font-size:11px;flex:1;min-width:0;cursor:pointer}
-.cf:focus{outline:none;border-color:var(--blue)}
+/* filtros internos do card (multipla selecao) */
+.cf-bar{display:flex;gap:6px;flex-wrap:wrap;padding:10px 0 4px;align-items:center;position:relative}
+.cf-dd{position:relative;flex:1;min-width:0}
+.cf-btn{width:100%;background:var(--bg2);border:1px solid var(--line);color:var(--txt3);border-radius:8px;padding:6px 8px;font-size:11px;cursor:pointer;text-align:left;display:flex;align-items:center;justify-content:space-between;gap:4px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.cf-btn:hover{border-color:var(--blue)}
+.cf-btn.on{background:rgba(59,130,246,.15);border-color:var(--blue);color:var(--blue2);font-weight:600}
+.cf-cv{font-size:9px;flex-shrink:0}
+.cf-menu{display:none;position:absolute;top:calc(100% + 4px);left:0;min-width:100%;width:max-content;max-width:220px;max-height:190px;overflow-y:auto;background:var(--surf2);border:1px solid var(--line);border-radius:9px;padding:6px;z-index:60;box-shadow:0 8px 24px rgba(0,0,0,.5)}
+.cf-menu.open{display:block}
+.cf-opt{display:flex;align-items:center;gap:7px;padding:6px 8px;font-size:12px;color:var(--txt2);cursor:pointer;border-radius:6px;white-space:nowrap}
+.cf-opt:hover{background:var(--bg2)}
+.cf-opt input{cursor:pointer;flex-shrink:0}
 .cf-clr{background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.4);color:#fca5a5;border-radius:8px;width:26px;height:26px;font-size:15px;line-height:1;cursor:pointer;flex-shrink:0}
 .cf-clr:hover{background:rgba(239,68,68,.3)}
 /* subgrupos por unidade (card transferencia) */
@@ -340,6 +348,7 @@ canvas{max-width:100%}
     <span class="hdr-pill"><b id="h-disp">95%</b> disponibilidade</span>
     <span class="hdr-pill" id="sync-status"><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#6b7f9e;margin-right:6px"></span>Conectando...</span>
     <button class="hdr-pill" id="btn-conf" style="cursor:pointer;border:1px solid var(--blue);background:rgba(59,130,246,.12);color:var(--blue2);font-weight:600"><i class="ti ti-clipboard-check" style="margin-right:5px"></i>Conferencia <span id="conf-badge" style="display:none;background:var(--amber);color:#0a1628;border-radius:9px;padding:0 7px;font-size:11px;margin-left:4px"></span></button>
+    <button class="hdr-pill" id="btn-xls" title="Baixar planilha dos veiculos em manutencao" style="cursor:pointer;padding:6px 10px;color:var(--txt3)"><i class="ti ti-file-spreadsheet"></i></button>
   </div>
 </header>
 
@@ -993,22 +1002,29 @@ function renderManut(){
     const tot=b.vs.length,inM=b.vs.filter(v=>v.status!=='OK'),op=tot-inM.length,pct=tot?Math.round(op/tot*100):0;
     const pc=pct>=80?PAL.green:(pct>=50?PAL.amber:PAL.red),has=inM.length>0;
     const key=b.base;
-    const f=CARDF[key]||(CARDF[key]={proj:'',perfil:'',tipo:''});
-    // aplica filtros do card
+    const f=CARDF[key]||(CARDF[key]={proj:[],perfil:[],tipo:[]});
+    // aplica filtros do card (multipla selecao: vazio = todos)
     let shown=inM.filter(v=>{
-      if(f.proj&&v.projeto!==f.proj)return false;
-      if(f.perfil&&v.perfil!==f.perfil)return false;
-      if(f.tipo){
-        if(f.tipo==='severa'){if(v.status!=='SEVERA')return false;}
-        else{if(v.status==='SEVERA')return false;if(!(v.tipos_manut||'').split(',').includes(f.tipo))return false;}
+      if(f.proj.length&&!f.proj.includes(v.projeto))return false;
+      if(f.perfil.length&&!f.perfil.includes(v.perfil))return false;
+      if(f.tipo.length){
+        const tv=[];if(v.status==='SEVERA')tv.push('severa');else{(v.tipos_manut||'').split(',').filter(Boolean).forEach(t=>tv.push(t));}
+        if(!f.tipo.some(t=>tv.includes(t)))return false;
       }
       return true;
     });
-    const filtrando=!!(f.proj||f.perfil||f.tipo);
+    const filtrando=!!(f.proj.length||f.perfil.length||f.tipo.length);
     // opcoes de filtro (so o que existe entre os parados deste card)
     const projs=[...new Set(inM.map(v=>v.projeto).filter(Boolean))].sort();
     const perfis=[...new Set(inM.map(v=>v.perfil).filter(Boolean))].sort();
-    const fbar=has?'<div class="cf-bar"><select class="cf" data-k="'+key+'" data-f="proj"><option value="">Todos projetos</option>'+projs.map(p=>'<option value="'+p+'"'+(f.proj===p?' selected':'')+'>'+p+'</option>').join('')+'</select><select class="cf" data-k="'+key+'" data-f="perfil"><option value="">Todos perfis</option>'+perfis.map(p=>'<option value="'+p+'"'+(f.perfil===p?' selected':'')+'>'+p+'</option>').join('')+'</select><select class="cf" data-k="'+key+'" data-f="tipo"><option value="">Todos tipos</option><option value="corretiva"'+(f.tipo==='corretiva'?' selected':'')+'>Corretiva</option><option value="preventiva"'+(f.tipo==='preventiva'?' selected':'')+'>Preventiva</option><option value="severa"'+(f.tipo==='severa'?' selected':'')+'>Severa</option></select>'+(filtrando?'<button class="cf-clr" data-k="'+key+'" title="Limpar filtros">&times;</button>':'')+'</div>':'';
+    const TIPOS=[['corretiva','Corretiva'],['preventiva','Preventiva'],['severa','Severa']];
+    const dd=(fld,label,opts)=>{
+      const sel=f[fld];
+      const txt=sel.length===0?label:(sel.length===1?sel[0]:sel.length+' selecionados');
+      const items=opts.map(o=>{const val=Array.isArray(o)?o[0]:o,lab=Array.isArray(o)?o[1]:o;return '<label class="cf-opt"><input type="checkbox" data-k="'+key+'" data-f="'+fld+'" value="'+val+'"'+(sel.includes(val)?' checked':'')+'> '+lab+'</label>';}).join('');
+      return '<div class="cf-dd"><button class="cf-btn'+(sel.length?' on':'')+'" data-dd="'+key+'-'+fld+'">'+txt+' <span class="cf-cv">&#9662;</span></button><div class="cf-menu" id="dd-'+key+'-'+fld+'">'+items+'</div></div>';
+    };
+    const fbar=has?'<div class="cf-bar">'+dd('proj','Projetos',projs)+dd('perfil','Perfis',perfis)+dd('tipo','Tipos',TIPOS)+(filtrando?'<button class="cf-clr" data-k="'+key+'" title="Limpar filtros">&times;</button>':'')+'</div>':'';
     // monta a lista (com subgrupos por unidade se for transferencia)
     const carItem=v=>'<div class="mitem3"><span class="md3 '+(v.status==='SEVERA'?'sev':'man')+'"></span><div class="mb3"><span class="mp3">'+v.placa+'</span><span class="pf-tag" style="margin-left:6px">'+v.perfil+'</span> '+projBadge(v)+'<div class="mr3">'+tipoBadges(v)+(v.motivo||v.detalhe||'Sem motivo')+'</div>'+daysPill3(v)+prevPill3(v)+'</div></div>';
     let ml;
@@ -1026,9 +1042,28 @@ function renderManut(){
     return '<div class="bc"><div class="bc-h"><span class="t">'+cardTitle+'</span>'+cardSig+'</div><div class="minis3"><div class="mini3"><div class="n">'+tot+'</div><div class="l">Frota</div></div><div class="mini3 mn"><div class="n">'+inM.length+'</div><div class="l">Manut.</div></div><div class="mini3 op"><div class="n">'+op+'</div><div class="l">Operac.</div></div></div><div class="pr-row"><span>Disponibilidade</span><b style="color:'+pc+'">'+pct+'%</b></div><div class="pr-bar"><span style="width:'+pct+'%;background:'+pc+'"></span></div><div class="bc-mh"><span class="l">Manutencao</span><span class="r"><span class="vcnt2 '+(has?'has':'ok')+'">'+(has?cnt:'OK')+'</span><button class="editb" data-b="'+b.base+'">editar</button></span></div>'+fbar+ml+'</div>';
   }).join('');
   wrap.querySelectorAll('.editb').forEach(btn=>btn.onclick=()=>openMM(btn.dataset.b));
-  wrap.querySelectorAll('.cf').forEach(s=>s.onchange=()=>{const k=s.dataset.k;if(!CARDF[k])CARDF[k]={proj:'',perfil:'',tipo:''};CARDF[k][s.dataset.f]=s.value;renderManut();});
-  wrap.querySelectorAll('.cf-clr').forEach(b=>b.onclick=()=>{CARDF[b.dataset.k]={proj:'',perfil:'',tipo:''};renderManut();});
+  // abre/fecha dropdown
+  wrap.querySelectorAll('.cf-btn').forEach(b=>b.onclick=e=>{
+    e.stopPropagation();
+    const m=document.getElementById('dd-'+b.dataset.dd);const aberto=m.classList.contains('open');
+    document.querySelectorAll('.cf-menu.open').forEach(x=>x.classList.remove('open'));
+    if(!aberto)m.classList.add('open');
+  });
+  // marca/desmarca opcao
+  wrap.querySelectorAll('.cf-opt input').forEach(c=>c.onchange=()=>{
+    const k=c.dataset.k,fld=c.dataset.f;
+    if(!CARDF[k])CARDF[k]={proj:[],perfil:[],tipo:[]};
+    const arr=CARDF[k][fld];
+    if(c.checked){if(!arr.includes(c.value))arr.push(c.value);}
+    else{const i=arr.indexOf(c.value);if(i>=0)arr.splice(i,1);}
+    const ddId='dd-'+k+'-'+fld;
+    renderManut();
+    const m=document.getElementById(ddId);if(m)m.classList.add('open'); // mantem aberto pra marcar varios
+  });
+  wrap.querySelectorAll('.cf-clr').forEach(b=>b.onclick=()=>{CARDF[b.dataset.k]={proj:[],perfil:[],tipo:[]};renderManut();});
 }
+// fecha dropdowns ao clicar fora
+document.addEventListener('click',e=>{if(!e.target.closest('.cf-dd'))document.querySelectorAll('.cf-menu.open').forEach(x=>x.classList.remove('open'));});
 let mmBase=null;
 function openMM(base){mmBase=base;document.getElementById('mmodal').classList.add('open');renderMM();}
 function mBaseV(){const a=[];for(const uf in DATA)DATA[uf].veiculos.forEach(v=>{if(baseKey(v)===mmBase)a.push({v,uf});});return a;}
@@ -1163,6 +1198,35 @@ document.getElementById('c-add').onclick=()=>{
 function openConf(){document.getElementById('cmodal').classList.add('open');document.getElementById('c-search').value='';renderConf();}
 document.getElementById('c-search').addEventListener('input',renderConf);
 function updateConfBadge(){const n=manAll().length;const bd=document.getElementById('conf-badge');if(n>0){bd.style.display='';bd.textContent=n;}else{bd.style.display='none';}}
+/* ---- exportar planilha dos veiculos em manutencao ---- */
+function tipoTexto(v){
+  if(v.status==='SEVERA')return 'Severa';
+  const t=(v.tipos_manut||'').split(',').filter(Boolean);
+  if(!t.length)return '-';
+  return t.map(x=>x.charAt(0).toUpperCase()+x.slice(1)).join(' + ');
+}
+function prevTexto(v){
+  if(v.andamento&&ANDAMENTOS[v.andamento])return ANDAMENTOS[v.andamento];
+  if(v.prev)return new Date(v.prev+'T00:00:00').toLocaleDateString('pt-BR');
+  return 'Sem previsao';
+}
+function exportarXLS(){
+  const man=manAll();
+  if(!man.length){alert('Nenhum veiculo em manutencao para exportar.');return;}
+  const esc=s=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const cols=['Placa','Tipo de Veiculo','Projeto','Tipo de Manutencao','Motivo','Previsao / Status','Base','UF','Entrada','Dias Parado'];
+  let rows=man.sort((a,b)=>(daysIn(b.v)||0)-(daysIn(a.v)||0)).map(({v,uf})=>{
+    const ent=v.entrada?new Date(v.entrada+'T00:00:00').toLocaleDateString('pt-BR'):'-';
+    return '<tr><td>'+esc(v.placa)+'</td><td>'+esc(v.perfil)+'</td><td>'+esc(v.projeto)+'</td><td>'+esc(tipoTexto(v))+'</td><td>'+esc(v.motivo||v.detalhe||'')+'</td><td>'+esc(prevTexto(v))+'</td><td>'+esc(v.base)+'</td><td>'+esc(uf)+'</td><td>'+ent+'</td><td>'+(daysIn(v)==null?'':daysIn(v))+'</td></tr>';
+  }).join('');
+  const html='<html xmlns:x="urn:schemas-microsoft-com:office:excel"><head><meta charset="utf-8"><!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>Manutencao</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]--></head><body><table border="1"><thead><tr>'+cols.map(c=>'<th style="background:#0a1628;color:#fff;font-weight:bold">'+c+'</th>').join('')+'</tr></thead><tbody>'+rows+'</tbody></table></body></html>';
+  const blob=new Blob(['\ufeff'+html],{type:'application/vnd.ms-excel;charset=utf-8'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  const d=new Date(),dt=String(d.getDate()).padStart(2,'0')+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+d.getFullYear();
+  a.download='veiculos_manutencao_'+dt+'.xls';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+}
+document.getElementById('btn-xls').onclick=exportarXLS;
 document.getElementById('btn-conf').onclick=openConf;
 document.getElementById('c-close').onclick=()=>document.getElementById('cmodal').classList.remove('open');
 document.getElementById('cmodal').onclick=e=>{if(e.target.id==='cmodal')document.getElementById('cmodal').classList.remove('open');};
