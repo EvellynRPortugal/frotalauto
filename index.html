@@ -213,6 +213,7 @@ canvas{max-width:100%}
 .mrow.open .mrow-det{display:block}
 .mrow-badges{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:7px}
 .mrow-mot{font-size:12.5px;color:var(--txt2);line-height:1.45}
+.mrow-of{font-size:12px;color:var(--blue2);font-weight:600;margin-bottom:5px;display:flex;align-items:center;gap:5px}
 /* filtros internos do card (multipla selecao) */
 .cf-bar{display:flex;gap:6px;flex-wrap:wrap;padding:10px 0 4px;align-items:center;position:relative}
 .cf-dd{position:relative;flex:1;min-width:0}
@@ -320,6 +321,8 @@ canvas{max-width:100%}
 .c-add-row{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap}
 .c-inp-placa{font-family:'JetBrains Mono',monospace;font-weight:700;letter-spacing:1px;text-transform:uppercase;width:130px;padding:10px 12px;background:var(--surf);border:1px solid var(--line);color:var(--txt);border-radius:9px;font-size:14px}
 .c-inp-mot{flex:1;min-width:150px;padding:10px 12px;background:var(--surf);border:1px solid var(--line);color:var(--txt);border-radius:9px;font-size:14px}
+.c-inp-of{flex:1;min-width:150px;padding:10px 12px;background:var(--surf);border:1px solid var(--line);color:var(--txt);border-radius:9px;font-size:14px}
+.c-inp-of:focus,.c-inp-mot:focus{outline:none;border-color:var(--blue)}
 .c-add-row2{display:flex;gap:14px;align-items:flex-end;flex-wrap:wrap}
 .c-tipos{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
 .c-prev-fld{display:flex;flex-direction:column;gap:3px}
@@ -563,6 +566,7 @@ canvas{max-width:100%}
     <button id="c-toggle-add" class="c-add-toggle"><i class="ti ti-plus"></i> Incluir manutencao</button>
     <div id="c-add-box" class="c-add-box" style="display:none">
       <div class="c-add-row"><input class="c-inp-placa" id="c-placa" placeholder="Placa" maxlength="8"/><input class="c-inp-mot" id="c-motivo" placeholder="Motivo / observacao"/></div>
+      <div class="c-add-row"><input class="c-inp-of" id="c-oficina" list="dl-oficinas" placeholder="Oficina (opcional)" autocomplete="off"/><span id="dl-host"></span></div>
       <div class="c-add-row2">
         <div class="c-tipos"><label class="m3-chk"><input type="checkbox" id="c-chk-corr"> Corretiva</label><label class="m3-chk"><input type="checkbox" id="c-chk-prev"> Preventiva</label><label class="m3-chk sev-chk"><input type="checkbox" id="c-chk-sev"> Severa</label></div>
       </div>
@@ -597,7 +601,10 @@ function save(){localStorage.setItem('lauto_v7',JSON.stringify(DATA));}
 const SB_URL='https://tvpqdpqmainlhenxpsap.supabase.co';
 const SB_KEY='sb_publishable_7V2LryjNG-2VZnqy4QyVFg_cJeHqm38';
 let sb=null, sbOk=false;
-const SBFIELDS=['placa','uf','base','cidade','tipo','perfil','marca','modelo','projeto','ano','status','motivo','entrada','prev','detalhe','tipo_rota','tipos_manut','andamento','conferido_em'];
+const SBFIELDS=['placa','uf','base','cidade','tipo','perfil','marca','modelo','projeto','ano','status','motivo','entrada','prev','detalhe','tipo_rota','tipos_manut','andamento','conferido_em','oficina'];
+// oficinas ja usadas (para sugestao no campo)
+function oficinasUsadas(){const s=new Set();for(const uf in DATA)DATA[uf].veiculos.forEach(v=>{if(v.oficina)s.add(v.oficina);});HIST.forEach(h=>{if(h.oficina)s.add(h.oficina);});return [...s].sort();}
+function oficinaDatalist(id){return '<datalist id="'+id+'">'+oficinasUsadas().map(o=>'<option value="'+o.replace(/"/g,'&quot;')+'">').join('')+'</datalist>';}
 const ANDAMENTOS={'orcamento':'Aguardando orcamento','diagnostico':'Em diagnostico','aprovacao':'Aguardando aprovacao','peca':'Aguardando peca','andamento':'Em andamento'};
 function andamentoLabel(k){return ANDAMENTOS[k]||'';}
 function andamentoOptions(sel){let o='<option value="">— sem status (usar previsao) —</option>';for(const k in ANDAMENTOS){o+='<option value="'+k+'"'+(sel===k?' selected':'')+'>'+ANDAMENTOS[k]+'</option>';}return o;}
@@ -668,7 +675,7 @@ async function histAbrir(v,uf){
   // registra entrada na oficina (so se nao houver uma aberta para a placa)
   const aberta=HIST.find(h=>h.placa===v.placa&&!h.saida);
   if(aberta)return;
-  const rec={placa:v.placa,base:v.base,uf:uf,motivo:v.motivo||v.detalhe||null,severa:v.status==='SEVERA',tipos:v.tipos_manut||'',andamento:v.andamento||'',prev:v.prev||null,entrada:v.entrada||today(),saida:null,dias:null};
+  const rec={placa:v.placa,base:v.base,uf:uf,motivo:v.motivo||v.detalhe||null,severa:v.status==='SEVERA',tipos:v.tipos_manut||'',andamento:v.andamento||'',prev:v.prev||null,oficina:v.oficina||'',entrada:v.entrada||today(),saida:null,dias:null};
   if(sbOk){try{const {data,error}=await sb.from('manutencoes').insert(rec).select().single();if(!error&&data){HIST.unshift(data);saveHist();return;}}catch(e){console.warn('hist abrir',e);}}
   rec.id='local-'+Date.now();HIST.unshift(rec);saveHist();
 }
@@ -686,7 +693,7 @@ async function histSetSevera(placa,severa){
 // mantem o registro em aberto do historico atualizado com o que foi editado no veiculo
 async function histSync(v){
   const aberta=HIST.find(h=>h.placa===v.placa&&!h.saida);if(!aberta)return;
-  const upd={motivo:v.motivo||v.detalhe||null,severa:v.status==='SEVERA',tipos:v.tipos_manut||'',andamento:v.andamento||'',prev:v.prev||null,entrada:v.entrada||aberta.entrada};
+  const upd={motivo:v.motivo||v.detalhe||null,severa:v.status==='SEVERA',tipos:v.tipos_manut||'',andamento:v.andamento||'',prev:v.prev||null,oficina:v.oficina||'',entrada:v.entrada||aberta.entrada};
   Object.assign(aberta,upd);saveHist();
   if(sbOk&&typeof aberta.id==='number'){try{await sb.from('manutencoes').update(upd).eq('id',aberta.id);}catch(e){console.warn('hist sync',e);}}
 }
@@ -1063,6 +1070,7 @@ function renderManut(){
         +'<span class="mrow-pv" style="color:'+pvc+'">'+pv+'</span>'
         +'<span class="mrow-cv">&#9662;</span></div>'
         +'<div class="mrow-det"><div class="mrow-badges">'+tipoBadges(v)+projBadge(v)+'<span class="pf-tag">'+v.perfil+'</span></div>'
+        +(v.oficina?'<div class="mrow-of"><i class="ti ti-building-warehouse"></i> '+v.oficina+'</div>':'')
         +'<div class="mrow-mot">'+(v.motivo||v.detalhe||'Sem motivo informado')+'</div></div></div>';
     };
     let ml;
@@ -1107,7 +1115,7 @@ document.addEventListener('click',e=>{if(!e.target.closest('.cf-dd'))document.qu
 let mmBase=null;
 function openMM(base){mmBase=base;document.getElementById('mmodal').classList.add('open');renderMM();}
 function mBaseV(){const a=[];for(const uf in DATA)DATA[uf].veiculos.forEach(v=>{if(baseKey(v)===mmBase)a.push({v,uf});});return a;}
-function renderMM(){const bv=mBaseV(),inM=bv.filter(x=>x.v.status!=='OK');document.getElementById('mm-title').textContent=mmBase+(bv[0]?' — '+bv[0].v.cidade:'');document.getElementById('mm-sub').textContent=bv.length+' veiculos · '+inM.length+' em manutencao';const l=document.getElementById('mm-list');if(!inM.length){l.innerHTML='<div class="mempty3">Nenhum veiculo em manutencao.</div>';return;}l.innerHTML=inM.sort((a,c)=>(c.v.status==='SEVERA')-(a.v.status==='SEVERA')).map(({v})=>'<div class="m3l"><span class="p">'+v.placa+'</span><div class="i"><span class="pf-tag">'+v.perfil+'</span> '+(v.motivo||v.detalhe||'sem motivo')+'<br>'+daysPill3(v)+prevPill3(v)+'</div><button class="sev" data-p="'+v.placa+'">'+(v.status==='SEVERA'?'Normal':'Severa')+'</button><button class="ret" data-p="'+v.placa+'">Baixa</button></div>').join('');l.querySelectorAll('.ret').forEach(b=>b.onclick=()=>{const r=findP(b.dataset.p);if(r){histFechar(r.v.placa);r.v.status='OK';delete r.v.motivo;delete r.v.prev;delete r.v.entrada;r.v.tipos_manut='';r.v.andamento='';save();pushVeiculo(r.v.placa);renderMM();refreshAll();}});l.querySelectorAll('.sev').forEach(b=>b.onclick=()=>{const r=findP(b.dataset.p);if(r){r.v.status=r.v.status==='SEVERA'?'MANUTENCAO':'SEVERA';histSetSevera(r.v.placa,r.v.status==='SEVERA');save();pushVeiculo(r.v.placa);renderMM();refreshAll();}});}
+function renderMM(){const bv=mBaseV(),inM=bv.filter(x=>x.v.status!=='OK');document.getElementById('mm-title').textContent=mmBase+(bv[0]?' — '+bv[0].v.cidade:'');document.getElementById('mm-sub').textContent=bv.length+' veiculos · '+inM.length+' em manutencao';const l=document.getElementById('mm-list');if(!inM.length){l.innerHTML='<div class="mempty3">Nenhum veiculo em manutencao.</div>';return;}l.innerHTML=inM.sort((a,c)=>(c.v.status==='SEVERA')-(a.v.status==='SEVERA')).map(({v})=>'<div class="m3l"><span class="p">'+v.placa+'</span><div class="i"><span class="pf-tag">'+v.perfil+'</span> '+(v.motivo||v.detalhe||'sem motivo')+'<br>'+daysPill3(v)+prevPill3(v)+'</div><button class="sev" data-p="'+v.placa+'">'+(v.status==='SEVERA'?'Normal':'Severa')+'</button><button class="ret" data-p="'+v.placa+'">Baixa</button></div>').join('');l.querySelectorAll('.ret').forEach(b=>b.onclick=()=>{const r=findP(b.dataset.p);if(r){histFechar(r.v.placa);r.v.status='OK';delete r.v.motivo;delete r.v.prev;delete r.v.entrada;r.v.tipos_manut='';r.v.andamento='';r.v.oficina='';save();pushVeiculo(r.v.placa);renderMM();refreshAll();}});l.querySelectorAll('.sev').forEach(b=>b.onclick=()=>{const r=findP(b.dataset.p);if(r){r.v.status=r.v.status==='SEVERA'?'MANUTENCAO':'SEVERA';histSetSevera(r.v.placa,r.v.status==='SEVERA');save();pushVeiculo(r.v.placa);renderMM();refreshAll();}});}
 document.getElementById('mm-close').onclick=()=>document.getElementById('mmodal').classList.remove('open');
 document.getElementById('mmodal').onclick=e=>{if(e.target.id==='mmodal')document.getElementById('mmodal').classList.remove('open');};
 // exclusao mutua: severa desmarca corretiva/preventiva e vice-versa
@@ -1175,7 +1183,7 @@ function renderConf(){
   document.getElementById('c-sub').textContent=all.length+' veiculo'+(all.length!==1?'s':'')+' em manutencao';
   if(!all.length){list.style.display='none';done.style.display='';document.getElementById('c-search').style.display='none';return;}
   document.getElementById('c-search').style.display='';
-  const man=q?all.filter(({v,uf})=>{const tipos=v.status==='SEVERA'?'severa':(v.tipos_manut||'');return v.placa.toLowerCase().includes(q)||v.base.toLowerCase().includes(q)||v.perfil.toLowerCase().includes(q)||uf.toLowerCase().includes(q)||tipos.toLowerCase().includes(q)||(v.motivo||v.detalhe||'').toLowerCase().includes(q);}):all;
+  const man=q?all.filter(({v,uf})=>{const tipos=v.status==='SEVERA'?'severa':(v.tipos_manut||'');return v.placa.toLowerCase().includes(q)||v.base.toLowerCase().includes(q)||v.perfil.toLowerCase().includes(q)||uf.toLowerCase().includes(q)||tipos.toLowerCase().includes(q)||(v.oficina||'').toLowerCase().includes(q)||(v.motivo||v.detalhe||'').toLowerCase().includes(q);}):all;
   list.style.display='';done.style.display='none';
   if(!man.length){list.innerHTML='<div class="empty">Nenhuma placa encontrada para "'+q+'".</div>';return;}
   // pendentes (nao conferidos hoje) primeiro
@@ -1187,9 +1195,9 @@ function renderConf(){
     const dcol=d>=15?'#fca5a5':(d>=7?'#fcd34d':'var(--txt2)');
     const conf=foiConferido(v.placa);
     const dot='<span class="conf-dot '+(conf?'ok':'pend')+'" title="'+(conf?'conferido hoje':'a conferir')+'"></span>';
-    return '<div class="c-item'+(conf?' conferido':'')+'" data-p="'+v.placa+'">'+dot+'<div class="c-info"><div class="c-top"><span class="tplate2">'+v.placa+'</span><span class="pf-tag">'+v.perfil+'</span>'+projBadge(v)+tipoBadges(v)+'</div><div class="c-meta">'+uf+' &middot; '+v.base+(isTransf(v)?' <span style="color:#a78bfa">(transf.)</span>':'')+' &middot; <b style="color:'+dcol+'">'+dtxt+'</b></div><div class="c-mot">'+(v.motivo||v.detalhe||'sem motivo informado')+'</div><div class="c-edit-wrap" id="cedit-'+v.placa+'"></div></div><div class="c-acts"><button class="c-edit" data-p="'+v.placa+'">editar</button><button class="c-stay" data-p="'+v.placa+'">Ainda esta</button><button class="c-out" data-p="'+v.placa+'">Saiu</button></div></div>';
+    return '<div class="c-item'+(conf?' conferido':'')+'" data-p="'+v.placa+'">'+dot+'<div class="c-info"><div class="c-top"><span class="tplate2">'+v.placa+'</span><span class="pf-tag">'+v.perfil+'</span>'+projBadge(v)+tipoBadges(v)+'</div><div class="c-meta">'+uf+' &middot; '+v.base+(isTransf(v)?' <span style="color:#a78bfa">(transf.)</span>':'')+' &middot; <b style="color:'+dcol+'">'+dtxt+'</b></div><div class="c-mot">'+(v.oficina?'<b style="color:var(--blue2)">'+v.oficina+'</b> &middot; ':'')+(v.motivo||v.detalhe||'sem motivo informado')+'</div><div class="c-edit-wrap" id="cedit-'+v.placa+'"></div></div><div class="c-acts"><button class="c-edit" data-p="'+v.placa+'">editar</button><button class="c-stay" data-p="'+v.placa+'">Ainda esta</button><button class="c-out" data-p="'+v.placa+'">Saiu</button></div></div>';
   }).join('');
-  list.querySelectorAll('.c-out').forEach(b=>b.onclick=()=>{const r=findP(b.dataset.p);if(r){histFechar(r.v.placa);r.v.status='OK';delete r.v.motivo;delete r.v.prev;delete r.v.entrada;r.v.tipos_manut='';r.v.andamento='';r.v.conferido_em=today();save();pushVeiculo(r.v.placa);renderConf();refreshAll();}});
+  list.querySelectorAll('.c-out').forEach(b=>b.onclick=()=>{const r=findP(b.dataset.p);if(r){histFechar(r.v.placa);r.v.status='OK';delete r.v.motivo;delete r.v.prev;delete r.v.entrada;r.v.tipos_manut='';r.v.andamento='';r.v.oficina='';r.v.conferido_em=today();save();pushVeiculo(r.v.placa);renderConf();refreshAll();}});
   list.querySelectorAll('.c-stay').forEach(b=>b.onclick=()=>{marcarConferido(b.dataset.p);renderConf();});
   list.querySelectorAll('.c-edit').forEach(b=>b.onclick=()=>toggleCEdit(b.dataset.p));
 }
@@ -1198,7 +1206,7 @@ function toggleCEdit(placa){
   if(wrap.innerHTML){wrap.innerHTML='';return;}
   const r=findP(placa);if(!r)return;const v=r.v;
   const sev=v.status==='SEVERA',t=(v.tipos_manut||'').split(',');
-  wrap.innerHTML='<div class="c-edit-box"><div class="c-tipos"><label class="m3-chk"><input type="checkbox" class="ce-corr" '+(!sev&&t.includes('corretiva')?'checked':'')+'> Corretiva</label><label class="m3-chk"><input type="checkbox" class="ce-prev" '+(!sev&&t.includes('preventiva')?'checked':'')+'> Preventiva</label><label class="m3-chk sev-chk"><input type="checkbox" class="ce-sev" '+(sev?'checked':'')+'> Severa</label></div><div class="c-add-row" style="margin-top:10px"><input class="c-inp-mot ce-mot" placeholder="Motivo" value="'+((v.motivo||v.detalhe||'').replace(/"/g,'&quot;'))+'"/></div><div class="c-add-row2" style="margin-top:10px"><div class="c-prev-fld"><label>Entrada na oficina</label><input type="date" class="ce-entrada" value="'+(v.entrada||'')+'"/></div><div class="c-prev-fld"><label>Status / andamento</label><select class="c-sel ce-and">'+andamentoOptions(v.andamento||'')+'</select></div><div class="c-prev-fld ce-prev-wrap"><label>Previsao</label><input type="date" class="ce-prev-d" value="'+(v.prev||'')+'"/></div></div><button class="c-add-btn ce-save" style="margin-top:12px">Salvar alteracoes</button></div>';
+  wrap.innerHTML='<div class="c-edit-box"><div class="c-tipos"><label class="m3-chk"><input type="checkbox" class="ce-corr" '+(!sev&&t.includes('corretiva')?'checked':'')+'> Corretiva</label><label class="m3-chk"><input type="checkbox" class="ce-prev" '+(!sev&&t.includes('preventiva')?'checked':'')+'> Preventiva</label><label class="m3-chk sev-chk"><input type="checkbox" class="ce-sev" '+(sev?'checked':'')+'> Severa</label></div><div class="c-add-row" style="margin-top:10px"><input class="c-inp-mot ce-mot" placeholder="Motivo" value="'+((v.motivo||v.detalhe||'').replace(/"/g,'&quot;'))+'"/><input class="c-inp-of ce-ofc" list="dl-of-'+placa+'" placeholder="Oficina (opcional)" autocomplete="off" value="'+((v.oficina||'').replace(/"/g,'&quot;'))+'"/>'+oficinaDatalist('dl-of-'+placa)+'</div><div class="c-add-row2" style="margin-top:10px"><div class="c-prev-fld"><label>Entrada na oficina</label><input type="date" class="ce-entrada" value="'+(v.entrada||'')+'"/></div><div class="c-prev-fld"><label>Status / andamento</label><select class="c-sel ce-and">'+andamentoOptions(v.andamento||'')+'</select></div><div class="c-prev-fld ce-prev-wrap"><label>Previsao</label><input type="date" class="ce-prev-d" value="'+(v.prev||'')+'"/></div></div><button class="c-add-btn ce-save" style="margin-top:12px">Salvar alteracoes</button></div>';
   const corr=wrap.querySelector('.ce-corr'),prev=wrap.querySelector('.ce-prev'),sv=wrap.querySelector('.ce-sev'),and=wrap.querySelector('.ce-and'),pwrap=wrap.querySelector('.ce-prev-wrap');
   function updVis(){pwrap.style.display=and.value?'none':'';}updVis();
   and.addEventListener('change',updVis);
@@ -1210,6 +1218,7 @@ function toggleCEdit(placa){
     if(!isSev&&!tipos.length){alert('Marque ao menos um tipo.');return;}
     v.status=isSev?'SEVERA':'MANUTENCAO';v.tipos_manut=tipos.join(',');
     v.motivo=wrap.querySelector('.ce-mot').value.trim();
+    v.oficina=wrap.querySelector('.ce-ofc').value.trim();
     const ent=wrap.querySelector('.ce-entrada').value;if(ent)v.entrada=ent;
     v.andamento=and.value;
     if(and.value){delete v.prev;}else{const pv=wrap.querySelector('.ce-prev-d').value;if(pv)v.prev=pv;else delete v.prev;}
@@ -1217,7 +1226,7 @@ function toggleCEdit(placa){
   };
 }
 // ---- incluir manutencao na conferencia ----
-document.getElementById('c-toggle-add').onclick=()=>{const box=document.getElementById('c-add-box');box.style.display=box.style.display==='none'?'':'none';if(box.style.display!=='none'){document.getElementById('c-andamento').innerHTML=andamentoOptions('');document.getElementById('c-entrada').value=today();updCPrevVis();}};
+document.getElementById('c-toggle-add').onclick=()=>{const box=document.getElementById('c-add-box');box.style.display=box.style.display==='none'?'':'none';if(box.style.display!=='none'){document.getElementById('c-andamento').innerHTML=andamentoOptions('');document.getElementById('c-entrada').value=today();document.getElementById('dl-host').innerHTML=oficinaDatalist('dl-oficinas');updCPrevVis();}};
 document.getElementById('c-chk-sev').addEventListener('change',function(){if(this.checked){document.getElementById('c-chk-corr').checked=false;document.getElementById('c-chk-prev').checked=false;}});
 document.getElementById('c-chk-corr').addEventListener('change',function(){if(this.checked)document.getElementById('c-chk-sev').checked=false;});
 document.getElementById('c-chk-prev').addEventListener('change',function(){if(this.checked)document.getElementById('c-chk-sev').checked=false;});
@@ -1226,6 +1235,7 @@ document.getElementById('c-andamento').addEventListener('change',updCPrevVis);
 document.getElementById('c-add').onclick=()=>{
   const inp=document.getElementById('c-placa').value.trim().toUpperCase(),mot=document.getElementById('c-motivo').value.trim(),prev=document.getElementById('c-prev').value;
   const and=document.getElementById('c-andamento').value,entrada=document.getElementById('c-entrada').value;
+  const ofc=document.getElementById('c-oficina').value.trim();
   const sev=document.getElementById('c-chk-sev').checked,corr=document.getElementById('c-chk-corr').checked,prevt=document.getElementById('c-chk-prev').checked;
   const msg=document.getElementById('c-add-msg');
   if(!inp){msg.style.color=PAL.red;msg.textContent='Digite uma placa.';return;}
@@ -1233,10 +1243,11 @@ document.getElementById('c-add').onclick=()=>{
   if(!sev&&!corr&&!prevt){msg.style.color=PAL.red;msg.textContent='Marque ao menos um tipo.';return;}
   let tipos=[];if(!sev){if(corr)tipos.push('corretiva');if(prevt)tipos.push('preventiva');}
   r.v.status=sev?'SEVERA':'MANUTENCAO';r.v.tipos_manut=tipos.join(',');if(mot)r.v.motivo=mot;
+  r.v.oficina=ofc;
   r.v.andamento=and;if(and){delete r.v.prev;}else if(prev){r.v.prev=prev;}
   r.v.entrada=entrada||today();
   save();pushVeiculo(r.v.placa);histAbrir(r.v,r.uf);
-  document.getElementById('c-placa').value='';document.getElementById('c-motivo').value='';document.getElementById('c-prev').value='';document.getElementById('c-andamento').value='';document.getElementById('c-entrada').value=today();updCPrevVis();
+  document.getElementById('c-placa').value='';document.getElementById('c-motivo').value='';document.getElementById('c-prev').value='';document.getElementById('c-andamento').value='';document.getElementById('c-oficina').value='';document.getElementById('c-entrada').value=today();updCPrevVis();
   document.getElementById('c-chk-sev').checked=false;document.getElementById('c-chk-corr').checked=false;document.getElementById('c-chk-prev').checked=false;
   msg.style.color=PAL.green;msg.textContent='Placa '+inp+' incluida em manutencao.';
   renderConf();refreshAll();
@@ -1260,10 +1271,10 @@ function exportarXLS(){
   const man=manAll();
   if(!man.length){alert('Nenhum veiculo em manutencao para exportar.');return;}
   const esc=s=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  const cols=['Placa','Tipo de Veiculo','Projeto','Tipo de Manutencao','Motivo','Previsao / Status','Base','UF','Entrada','Dias Parado'];
+  const cols=['Placa','Tipo de Veiculo','Projeto','Tipo de Manutencao','Oficina','Motivo','Previsao / Status','Base','UF','Entrada','Dias Parado'];
   let rows=man.sort((a,b)=>(daysIn(b.v)||0)-(daysIn(a.v)||0)).map(({v,uf})=>{
     const ent=v.entrada?new Date(v.entrada+'T00:00:00').toLocaleDateString('pt-BR'):'-';
-    return '<tr><td>'+esc(v.placa)+'</td><td>'+esc(v.perfil)+'</td><td>'+esc(v.projeto)+'</td><td>'+esc(tipoTexto(v))+'</td><td>'+esc(v.motivo||v.detalhe||'')+'</td><td>'+esc(prevTexto(v))+'</td><td>'+esc(v.base)+'</td><td>'+esc(uf)+'</td><td>'+ent+'</td><td>'+(daysIn(v)==null?'':daysIn(v))+'</td></tr>';
+    return '<tr><td>'+esc(v.placa)+'</td><td>'+esc(v.perfil)+'</td><td>'+esc(v.projeto)+'</td><td>'+esc(tipoTexto(v))+'</td><td>'+esc(v.oficina||'')+'</td><td>'+esc(v.motivo||v.detalhe||'')+'</td><td>'+esc(prevTexto(v))+'</td><td>'+esc(v.base)+'</td><td>'+esc(uf)+'</td><td>'+ent+'</td><td>'+(daysIn(v)==null?'':daysIn(v))+'</td></tr>';
   }).join('');
   const html='<html xmlns:x="urn:schemas-microsoft-com:office:excel"><head><meta charset="utf-8"><!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>Manutencao</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]--></head><body><table border="1"><thead><tr>'+cols.map(c=>'<th style="background:#0a1628;color:#fff;font-weight:bold">'+c+'</th>').join('')+'</tr></thead><tbody>'+rows+'</tbody></table></body></html>';
   const blob=new Blob(['\ufeff'+html],{type:'application/vnd.ms-excel;charset=utf-8'});
