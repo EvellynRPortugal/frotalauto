@@ -121,6 +121,8 @@ body.somente-consulta .bc-mh .r{opacity:.5}
 .map-svg path.sel{stroke:var(--gold);stroke-width:2.5}
 .uf-label{font-size:10px;font-weight:700;fill:#fff;pointer-events:none;text-anchor:middle;paint-order:stroke;stroke:rgba(0,0,0,.35);stroke-width:2px}
 .uf-count{font-size:9px;fill:rgba(255,255,255,.85);pointer-events:none;text-anchor:middle}
+.uf-pct{font-size:10px;font-weight:800;text-anchor:middle;pointer-events:none}
+.uf-pct-g{pointer-events:none}
 .map-legend{position:absolute;bottom:16px;right:16px;background:rgba(10,22,40,.85);border:1px solid var(--line);border-radius:10px;padding:11px 13px;font-size:11px;backdrop-filter:blur(4px)}
 .map-legend .lg-t{font-weight:700;margin-bottom:7px;font-size:11px}
 .map-legend .lg-row{display:flex;align-items:center;gap:7px;margin-bottom:4px;color:var(--txt2)}
@@ -408,7 +410,6 @@ body.somente-consulta .bc-mh .r{opacity:.5}
   <button class="tab" data-v="mapa"><i class="ti ti-map-2"></i> Mapa</button>
   <button class="tab" data-v="manut"><i class="ti ti-tool"></i> Manutencao <span class="pill" id="tab-man">0</span></button>
   <button class="tab" data-v="veic"><i class="ti ti-truck"></i> Veiculos</button>
-  <button class="tab" data-v="reuniao"><i class="ti ti-presentation"></i> Reuniao</button>
 </div>
 
 <!-- DASHBOARDS -->
@@ -457,12 +458,11 @@ body.somente-consulta .bc-mh .r{opacity:.5}
     <div class="map-card">
       <div id="map-host"></div>
       <div class="map-legend">
-        <div class="lg-t">Taxa de manutencao</div>
-        <div class="lg-row"><i style="background:#1f6f4f"></i> Sem parados</div>
+        <div class="lg-t">% imobilizados</div>
+        <div class="lg-row"><i style="background:#10b981"></i> Sem parados</div>
         <div class="lg-row"><i style="background:#f59e0b"></i> Ate 10%</div>
         <div class="lg-row"><i style="background:#f97316"></i> 10-20%</div>
         <div class="lg-row"><i style="background:#ef4444"></i> +20%</div>
-        <div class="lg-row" style="color:var(--txt3);margin-top:4px">Brilho = volume parado</div>
       </div>
       <div class="map-tip" id="map-tip"></div>
     </div>
@@ -508,17 +508,7 @@ body.somente-consulta .bc-mh .r{opacity:.5}
 
 <!-- VEICULOS -->
 <div class="view" id="view-veic">
-  <div id="vlock" class="vlock">
-    <div class="lockbox">
-      <div class="locki"><i class="ti ti-lock"></i></div>
-      <h2>Area protegida</h2>
-      <p>A alteracao de base e projeto exige senha.</p>
-      <input id="vpass" type="password" inputmode="numeric" placeholder="Senha" autocomplete="off"/>
-      <button id="vunlock">Desbloquear</button>
-      <div class="lockmsg" id="vlockmsg"></div>
-    </div>
-  </div>
-  <div id="vinner" style="display:none">
+  <div id="vinner">
     <div class="vh3">
       <div><div style="font-size:16px;font-weight:700">Alterar base e projeto</div><div style="font-size:13px;color:var(--txt3);margin-top:3px">O estado segue a base automaticamente. Mudancas refletem no mapa e na manutencao.</div></div>
       <input id="vq" class="vs" placeholder="Buscar placa, base, perfil, projeto, estado..."/>
@@ -528,36 +518,6 @@ body.somente-consulta .bc-mh .r{opacity:.5}
   </div>
 </div>
 
-</div>
-
-<!-- REUNIAO (modo apresentacao) -->
-<div class="view" id="view-reuniao">
-  <div class="reu-head">
-    <div><h2 style="font-size:20px;color:var(--txt)">Carros parados &mdash; Coleta/Entrega</h2><p style="font-size:13px;color:var(--txt3)">Clique num estado para ver os veiculos em manutencao por base. Somente rotas de coleta/entrega.</p></div>
-    <div class="reu-kpis">
-      <div class="reu-k"><div class="n" id="reu-total">0</div><div class="l">Parados (C/E)</div></div>
-      <div class="reu-k"><div class="n" id="reu-late" style="color:var(--red)">0</div><div class="l">Atrasados</div></div>
-      <div class="reu-k"><div class="n" id="reu-ufs">0</div><div class="l">Estados</div></div>
-    </div>
-  </div>
-  <div class="reu-wrap">
-    <div class="map-card">
-      <div id="reu-map-host"></div>
-      <div class="map-legend">
-        <div class="lg-t">Taxa de manutencao (C/E)</div>
-        <div class="lg-row"><i style="background:#1f6f4f"></i> Sem parados</div>
-        <div class="lg-row"><i style="background:#f59e0b"></i> Ate 10%</div>
-        <div class="lg-row"><i style="background:#f97316"></i> 10-20%</div>
-        <div class="lg-row"><i style="background:#ef4444"></i> +20%</div>
-      </div>
-      <div class="map-tip" id="reu-tip"></div>
-    </div>
-    <div class="reu-panel">
-      <div class="reu-panel-head"><h3 id="reu-uf">Selecione um estado</h3><span id="reu-sub">Clique no mapa</span></div>
-      <div class="reu-empty" id="reu-empty">Os cards de cada base com veiculos parados aparecem aqui.</div>
-      <div id="reu-cards"></div>
-    </div>
-  </div>
 </div>
 
 <!-- modal manutencao -->
@@ -864,8 +824,7 @@ document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
   if(t.dataset.v==='dash')renderDash();
   if(t.dataset.v==='mapa'){drawMap();renderSP();}
   if(t.dataset.v==='manut')renderManut();
-  if(t.dataset.v==='veic')lockVeic();
-  if(t.dataset.v==='reuniao'){drawReuMap();renderReu();}
+  if(t.dataset.v==='veic')renderVeic();
 });
 document.querySelectorAll('.subnav button').forEach(b=>b.onclick=()=>{
   document.querySelectorAll('.subnav button').forEach(x=>x.classList.remove('active'));b.classList.add('active');
@@ -887,16 +846,16 @@ function updHeader(){
 function manRate(uf){const d=DATA[uf];if(!d||!d.total)return 0;return d.veiculos.filter(v=>v.status!=='OK').length/d.total;}
 function manAbs(uf){const d=DATA[uf];return d?d.veiculos.filter(v=>v.status!=='OK').length:0;}
 function ufColor(uf){
-  const d=DATA[uf];if(!d||!d.total)return '#1b2c47';
-  const rate=manRate(uf);let base;
-  if(rate===0)base=[31,111,79];
-  else if(rate<0.05)base=[132,160,60];
-  else if(rate<0.10)base=[245,158,11];
-  else if(rate<0.20)base=[249,115,22];
-  else base=[239,68,68];
-  const vol=Math.min(1,manAbs(uf)/8),f=0.55+0.45*vol;
-  const m=base.map(c=>Math.round(c*f+10*(1-f)));
-  return 'rgb('+m[0]+','+m[1]+','+m[2]+')';
+  const d=DATA[uf];if(!d||!d.total)return '#16233c';
+  return '#22344f'; // cinza-azulado neutro para todos os estados com frota
+}
+// cor da ETIQUETA de porcentagem, conforme a taxa de imobilizados
+function rateColor(uf){
+  const rate=manRate(uf);
+  if(rate===0)return '#10b981';        // verde
+  if(rate<0.10)return '#f59e0b';       // amarelo
+  if(rate<0.20)return '#f97316';       // laranja
+  return '#ef4444';                    // vermelho
 }
 function drawMap(){
   const host=document.getElementById('map-host');
@@ -906,9 +865,16 @@ function drawMap(){
     svg+='<path data-uf="'+uf+'" d="'+SVGMAP.paths[uf]+'" fill="'+ufColor(uf)+'" class="'+(selUF===uf?'sel':'')+'"'+(has?'':' style="opacity:.5"')+'/>';
   }
   for(const uf in SVGMAP.centroids){
-    const c=SVGMAP.centroids[uf];const tot=DATA[uf]?DATA[uf].total:0;
+    const c=SVGMAP.centroids[uf];const d=DATA[uf];const tot=d?d.total:0;
     svg+='<text class="uf-label" x="'+c[0]+'" y="'+c[1]+'">'+uf+'</text>';
-    if(tot)svg+='<text class="uf-count" x="'+c[0]+'" y="'+(c[1]+11)+'">'+tot+'</text>';
+    if(tot){
+      const pct=Math.round(manRate(uf)*100);
+      const col=rateColor(uf);
+      // etiqueta arredondada com a % colorida
+      const txt=pct+'%';
+      const w=txt.length*7.5+10;
+      svg+='<g class="uf-pct-g"><rect x="'+(c[0]-w/2)+'" y="'+(c[1]+4)+'" width="'+w+'" height="16" rx="8" fill="'+col+'" opacity="0.9"/><text class="uf-pct" x="'+c[0]+'" y="'+(c[1]+15)+'" fill="#0a1628">'+txt+'</text></g>';
+    }
   }
   svg+='</svg>';
   host.innerHTML=svg;
@@ -964,77 +930,6 @@ function renderDrill2(){
 document.querySelectorAll('.toggle2 button').forEach(b=>b.onclick=()=>{document.querySelectorAll('.toggle2 button').forEach(x=>x.classList.remove('active'));b.classList.add('active');mapMode=b.dataset.m;renderDrill2();});
 document.querySelectorAll('.subtabs2 button').forEach(b=>b.onclick=()=>{document.querySelectorAll('.subtabs2 button').forEach(x=>x.classList.remove('active'));b.classList.add('active');subTab=b.dataset.s;renderDrill2();});
 document.getElementById('sp-q').oninput=renderDrill2;
-
-/* ============ REUNIAO (coleta/entrega em manutencao) ============ */
-let selReuUF=null;
-function isCE(v){return (v.tipo_rota||'').toUpperCase().indexOf('COLETA')>=0||(v.tipo_rota||'').toUpperCase().indexOf('ENTREGA')>=0;}
-function reuParadosUF(uf){const d=DATA[uf];if(!d)return [];return d.veiculos.filter(v=>v.status!=='OK'&&isCE(v));}
-function reuTotalUF(uf){const d=DATA[uf];if(!d)return 0;return d.veiculos.filter(v=>isCE(v)).length;}
-function reuColor(uf){
-  const paradosCE=reuParadosUF(uf).length;
-  if(paradosCE===0)return '#1f6f4f'; // verde: sem parados
-  const totalCE=reuTotalUF(uf)||1;const rate=paradosCE/totalCE;
-  let base;if(rate<0.10)base=[245,158,11];else if(rate<0.20)base=[249,115,22];else base=[239,68,68];
-  const vol=Math.min(1,paradosCE/8),f=0.55+0.45*vol;
-  const m=base.map(c=>Math.round(c*f+10*(1-f)));
-  return 'rgb('+m[0]+','+m[1]+','+m[2]+')';
-}
-function drawReuMap(){
-  const host=document.getElementById('reu-map-host');
-  let svg='<svg class="reu-map-svg" viewBox="0 0 '+SVGMAP.w+' '+SVGMAP.h+'" xmlns="http://www.w3.org/2000/svg">';
-  for(const uf in SVGMAP.paths){
-    const parados=reuParadosUF(uf).length;
-    const clickable=parados>0;
-    svg+='<path data-uf="'+uf+'" d="'+SVGMAP.paths[uf]+'" fill="'+reuColor(uf)+'" class="'+(clickable?'clickable':'')+(selReuUF===uf?' selr':'')+'"'+(clickable?'':' style="opacity:.65"')+'/>';
-  }
-  for(const uf in SVGMAP.centroids){
-    const c=SVGMAP.centroids[uf];const parados=reuParadosUF(uf).length;
-    svg+='<text class="uf-label" x="'+c[0]+'" y="'+c[1]+'">'+uf+'</text>';
-    if(parados)svg+='<text class="uf-count" x="'+c[0]+'" y="'+(c[1]+11)+'">'+parados+'</text>';
-  }
-  svg+='</svg>';
-  host.innerHTML=svg;
-  const tip=document.getElementById('reu-tip');
-  host.querySelectorAll('path.clickable').forEach(p=>{
-    const uf=p.dataset.uf;
-    p.onclick=()=>{selReuUF=uf;drawReuMap();renderReuCards();};
-    p.onmousemove=e=>{const r=host.getBoundingClientRect();tip.style.display='block';tip.style.left=(e.clientX-r.left+12)+'px';tip.style.top=(e.clientY-r.top+12)+'px';tip.innerHTML='<b>'+uf+'</b><br>'+reuParadosUF(uf).length+' parados (C/E)';};
-    p.onmouseleave=()=>tip.style.display='none';
-  });
-}
-function renderReu(){
-  // KPIs do topo
-  let total=0,late=0,ufs=0;
-  for(const uf in DATA){const par=reuParadosUF(uf);if(par.length){ufs++;total+=par.length;late+=par.filter(v=>isLate(v)).length;}}
-  document.getElementById('reu-total').textContent=total;
-  document.getElementById('reu-late').textContent=late;
-  document.getElementById('reu-ufs').textContent=ufs;
-  renderReuCards();
-}
-function reuPrevStatus(v){
-  if(v.andamento&&ANDAMENTOS[v.andamento])return '<span style="color:#93c5fd">'+ANDAMENTOS[v.andamento]+'</span>';
-  if(v.prev){const dp=daysToPrev(v);const dt=new Date(v.prev+'T00:00:00').toLocaleDateString('pt-BR');if(dp<0)return '<span style="color:#fca5a5">'+dt+' ('+Math.abs(dp)+'d atrasado)</span>';if(dp===0)return '<span style="color:#fcd34d">'+dt+' (hoje)</span>';return '<span style="color:#6ee7b7">'+dt+'</span>';}
-  return '<span style="color:var(--txt3)">sem previsao</span>';
-}
-function renderReuCards(){
-  const empty=document.getElementById('reu-empty'),cards=document.getElementById('reu-cards');
-  if(!selReuUF||!DATA[selReuUF]){empty.style.display='';cards.innerHTML='';document.getElementById('reu-uf').textContent='Selecione um estado';document.getElementById('reu-sub').textContent='Clique no mapa';return;}
-  const parados=reuParadosUF(selReuUF);
-  document.getElementById('reu-uf').textContent=selReuUF;
-  document.getElementById('reu-sub').textContent=parados.length+' veiculo'+(parados.length!==1?'s':'')+' parado'+(parados.length!==1?'s':'')+' (coleta/entrega)';
-  if(!parados.length){empty.style.display='';empty.textContent='Nenhum veiculo de coleta/entrega parado neste estado.';cards.innerHTML='';return;}
-  empty.style.display='none';
-  // agrupa por base
-  const byBase={};parados.forEach(v=>{if(!byBase[v.base])byBase[v.base]={base:v.base,cidade:v.cidade,vs:[]};byBase[v.base].vs.push(v);});
-  const bases=Object.values(byBase).sort((a,b)=>b.vs.length-a.vs.length);
-  cards.innerHTML=bases.map(b=>{
-    const cars=b.vs.sort((a,c)=>(c.status==='SEVERA')-(a.status==='SEVERA')).map(v=>{
-      const d=daysIn(v);const cls=v.status==='SEVERA'?'sev':(isLate(v)?'late':'');
-      return '<div class="reu-car '+cls+'"><div class="reu-car-top"><span class="reu-plate">'+v.placa+'</span>'+tipoBadges(v)+projBadge(v)+'<span style="margin-left:auto;font-size:12px;color:'+(d>=15?'#fca5a5':(d>=7?'#fcd34d':'var(--txt3)'))+'"><b>'+(d===0?'entrou hoje':d+'d parado')+'</b></span></div><div class="reu-car-info"><div><span class="lbl">Perfil</span>'+v.perfil+'</div><div><span class="lbl">Projeto</span>'+(v.projeto||'-')+'</div><div><span class="lbl">Previsao / Status</span>'+reuPrevStatus(v)+'</div></div><div class="reu-mot"><span class="lbl">Motivo</span>'+(v.motivo||v.detalhe||'sem motivo informado')+'</div></div>';
-    }).join('');
-    return '<div class="reu-base"><div class="reu-base-h"><span class="bn">'+b.base+'</span><span class="bc">'+b.cidade+'</span><span class="bcount">'+b.vs.length+' parado'+(b.vs.length!==1?'s':'')+'</span></div>'+cars+'</div>';
-  }).join('');
-}
 
 
 /* ============ DASHBOARDS ============ */
@@ -1253,11 +1148,7 @@ document.getElementById('chk-prev').addEventListener('change',function(){if(this
 document.getElementById('mm-add').onclick=()=>{const inp=document.getElementById('mm-placa').value.trim().toUpperCase(),mot=document.getElementById('mm-motivo').value.trim(),prev=document.getElementById('mm-prev').value,sev=document.getElementById('chk-sev').checked,corr=document.getElementById('chk-corr').checked,prevt=document.getElementById('chk-prev').checked,msg=document.getElementById('mm-msg');if(!inp){msg.style.color=PAL.red;msg.textContent='Digite uma placa.';return;}const r=findP(inp);if(!r){msg.style.color=PAL.red;msg.textContent='Placa nao encontrada.';return;}if(!sev&&!corr&&!prevt){msg.style.color=PAL.red;msg.textContent='Marque ao menos um tipo (corretiva, preventiva ou severa).';return;}let tipos=[];if(!sev){if(corr)tipos.push('corretiva');if(prevt)tipos.push('preventiva');}r.v.status=sev?'SEVERA':'MANUTENCAO';r.v.tipos_manut=tipos.join(',');if(mot)r.v.motivo=mot;if(prev)r.v.prev=prev;if(!r.v.entrada)r.v.entrada=today();save();pushVeiculo(r.v.placa);histAbrir(r.v,r.uf);document.getElementById('mm-placa').value='';document.getElementById('mm-motivo').value='';document.getElementById('mm-prev').value='';document.getElementById('chk-sev').checked=false;document.getElementById('chk-corr').checked=false;document.getElementById('chk-prev').checked=false;msg.style.color=PAL.green;msg.textContent='Placa '+inp+' sinalizada.';renderMM();refreshAll();};
 
 /* ============ VEICULOS + SENHA ============ */
-const SENHA='2303';
-function lockVeic(){document.getElementById('vinner').style.display='none';document.getElementById('vlock').style.display='flex';document.getElementById('vpass').value='';document.getElementById('vlockmsg').textContent='';setTimeout(()=>document.getElementById('vpass').focus(),50);}
-function unlockVeic(){const v=document.getElementById('vpass').value,m=document.getElementById('vlockmsg');if(v===SENHA){document.getElementById('vlock').style.display='none';document.getElementById('vinner').style.display='';renderVeic();}else{m.style.color=PAL.red;m.textContent='Senha incorreta.';document.getElementById('vpass').value='';document.getElementById('vpass').focus();}}
-document.getElementById('vunlock').onclick=unlockVeic;
-document.getElementById('vpass').addEventListener('keydown',e=>{if(e.key==='Enter')unlockVeic();});
+
 function renderVeic(){const q=(document.getElementById('vq').value||'').toLowerCase();let all=allV();if(q)all=all.filter(({v,uf})=>v.placa.toLowerCase().includes(q)||v.base.toLowerCase().includes(q)||v.perfil.toLowerCase().includes(q)||v.projeto.toLowerCase().includes(q)||uf.toLowerCase().includes(q)||v.cidade.toLowerCase().includes(q));all.sort((a,b)=>a.uf.localeCompare(b.uf)||a.v.base.localeCompare(b.v.base)||a.v.placa.localeCompare(b.v.placa));document.getElementById('vcount').textContent=all.length+' veiculo'+(all.length!==1?'s':'')+(q?' (filtrados)':'');const l=document.getElementById('vlist');if(!all.length){l.innerHTML='<div class="empty">Nenhum veiculo encontrado.</div>';return;}l.innerHTML=all.slice(0,300).map(({v,uf})=>{const m=v.status!=='OK';const hr=histResumo(v.placa);const hbadge=hr.vezes>0?'<span class="bdg" style="background:rgba(59,130,246,.18);color:#60a5fa" title="'+hr.vezes+' passagem(ns), '+hr.totalDias+' dias no total">'+hr.vezes+'x · '+hr.totalDias+'d</span>':'';return '<div class="vlr"><span class="vlp">'+v.placa+'</span><span class="pf-tag">'+v.perfil+'</span><div class="vlm"><div class="vll"><b>'+uf+'</b> &middot; '+v.base+' &middot; '+v.cidade+(isTransf(v)?' <span class="pf-tag" style="background:rgba(167,139,250,.18);color:#a78bfa">transf.</span>':'')+'</div><div class="vlpj">'+projBadge(v)+'</div></div>'+(m?'<span class="bdg man">manut.</span>':'')+hbadge+'<button class="vle" style="background:#1a2f4d;border:1px solid var(--line)" data-h="'+v.placa+'">Historico</button><button class="vle" data-p="'+v.placa+'">Alterar</button></div>';}).join('')+(all.length>300?'<div class="empty" style="font-size:12px">Mostrando 300 de '+all.length+'. Refine a busca.</div>':'');l.querySelectorAll('.vle[data-p]').forEach(b=>b.onclick=()=>openVM(b.dataset.p));l.querySelectorAll('.vle[data-h]').forEach(b=>b.onclick=()=>openHist(b.dataset.h));}
 function openHist(placa){
   const r=findP(placa);const hr=histResumo(placa);
@@ -1481,7 +1372,7 @@ function maybeAutoConf(){
   if(ultima!==hoje && manAll().length>0){localStorage.setItem('lauto_conf_dia',hoje);setTimeout(openConf,1200);}
 }
 
-function refreshAll(){updHeader();updateConfBadge();const av=id=>document.getElementById('view-'+id).classList.contains('active');if(av('dash'))renderDash();if(av('mapa')){drawMap();renderSP();}if(av('manut'))renderManut();if(av('veic')&&document.getElementById('vinner').style.display!=='none')renderVeic();if(av('reuniao')){drawReuMap();renderReu();}if(document.getElementById('cmodal').classList.contains('open')&&!document.querySelector('.c-edit-box'))renderConf();}
+function refreshAll(){updHeader();updateConfBadge();const av=id=>document.getElementById('view-'+id).classList.contains('active');if(av('dash'))renderDash();if(av('mapa')){drawMap();renderSP();}if(av('manut'))renderManut();if(av('veic'))renderVeic();if(document.getElementById('cmodal').classList.contains('open')&&!document.querySelector('.c-edit-box'))renderConf();}
 updHeader();renderDash();
 loadFromSupabase();
 
