@@ -101,6 +101,7 @@ body.somente-consulta #btn-xls{display:none}
 .cons-plate{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:15px;background:#0a1628;border:1px solid var(--line);color:#fff;padding:4px 11px;border-radius:6px;letter-spacing:1px}
 .cons-car-meta{font-size:12.5px;color:var(--txt2);margin-bottom:5px}
 .cons-car-meta b{color:var(--txt)}
+.cons-prev{margin-bottom:6px}
 .cons-mot{font-size:12.5px;color:var(--txt2);line-height:1.4}
 .cons-empty{padding:50px 20px;text-align:center;color:var(--txt3);font-size:14px}
 /* reuniao */
@@ -982,7 +983,13 @@ function renderCons(){
   arr.sort((a,b)=>(b.v.status==='SEVERA')-(a.v.status==='SEVERA')||(daysIn(b.v)||0)-(daysIn(a.v)||0));
   list.innerHTML=arr.map(({v,uf})=>{
     const sev=v.status==='SEVERA';
-    return '<div class="cons-car '+(sev?'sev':'')+'"><div class="cons-car-top"><span class="cons-plate">'+v.placa+'</span><span class="pf-tag">'+v.perfil+'</span>'+projBadge(v)+tipoBadges(v)+'</div><div class="cons-car-meta"><b>'+uf+'</b> &middot; '+v.base+(isTransf(v)?' <span style="color:#a78bfa">(transf.)</span>':'')+' &middot; '+(sev?'<b style="color:#fca5a5">Severa</b>':'<b style="color:'+PAL.amber+'">Manutencao</b>')+'</div><div class="cons-mot">'+(v.motivo||v.detalhe||'sem motivo informado')+'</div></div>';
+    const d=daysIn(v);
+    const dtxt=d===null?'':(d===0?'entrou hoje':d+'d parado');
+    const dcol=d>=15?'#fca5a5':(d>=7?'#fcd34d':'var(--txt3)');
+    return '<div class="cons-car '+(sev?'sev':'')+'"><div class="cons-car-top"><span class="cons-plate">'+v.placa+'</span><span class="pf-tag">'+v.perfil+'</span>'+projBadge(v)+tipoBadges(v)+'</div>'
+      +'<div class="cons-car-meta"><b>'+uf+'</b> &middot; '+v.base+(isTransf(v)?' <span style="color:#a78bfa">(transf.)</span>':'')+(dtxt?' &middot; <b style="color:'+dcol+'">'+dtxt+'</b>':'')+'</div>'
+      +'<div class="cons-prev">'+prevPill3(v)+'</div>'
+      +'<div class="cons-mot">'+(v.motivo||v.detalhe||'sem motivo informado')+'</div></div>';
   }).join('');
 }
 function refreshCons(){drawConsMap();renderCons();}
