@@ -1492,10 +1492,11 @@ function exportarXLS(){
   const man=manAll();
   if(!man.length){alert('Nenhum veiculo em manutencao para exportar.');return;}
   const esc=s=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  const cols=['Placa','Tipo de Veiculo','Projeto','Tipo de Manutencao','Oficina','Motivo','Previsao / Status','Base','UF','Entrada','Dias Parado'];
+  const cols=['Placa','Tipo de Veiculo','Projeto','Tipo de Manutencao','Oficina','Estado da Oficina','Motivo','Previsao / Status','Base','UF','Entrada','Dias Parado'];
   let rows=man.sort((a,b)=>(daysIn(b.v)||0)-(daysIn(a.v)||0)).map(({v,uf})=>{
     const ent=v.entrada?new Date(v.entrada+'T00:00:00').toLocaleDateString('pt-BR'):'-';
-    return '<tr><td>'+esc(v.placa)+'</td><td>'+esc(v.perfil)+'</td><td>'+esc(v.projeto)+'</td><td>'+esc(tipoTexto(v))+'</td><td>'+esc(v.oficina||'')+'</td><td>'+esc(v.motivo||v.detalhe||'')+'</td><td>'+esc(prevTexto(v))+'</td><td>'+esc(v.base)+'</td><td>'+esc(uf)+'</td><td>'+ent+'</td><td>'+(daysIn(v)==null?'':daysIn(v))+'</td></tr>';
+    const ofUf=v.oficina?((oficinaInfo(v.oficina)||{}).uf||''):'';
+    return '<tr><td>'+esc(v.placa)+'</td><td>'+esc(v.perfil)+'</td><td>'+esc(v.projeto)+'</td><td>'+esc(tipoTexto(v))+'</td><td>'+esc(v.oficina||'')+'</td><td>'+esc(ofUf)+'</td><td>'+esc(v.motivo||v.detalhe||'')+'</td><td>'+esc(prevTexto(v))+'</td><td>'+esc(v.base)+'</td><td>'+esc(uf)+'</td><td>'+ent+'</td><td>'+(daysIn(v)==null?'':daysIn(v))+'</td></tr>';
   }).join('');
   const html='<html xmlns:x="urn:schemas-microsoft-com:office:excel"><head><meta charset="utf-8"><!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>Manutencao</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]--></head><body><table border="1"><thead><tr>'+cols.map(c=>'<th style="background:#0a1628;color:#fff;font-weight:bold">'+c+'</th>').join('')+'</tr></thead><tbody>'+rows+'</tbody></table></body></html>';
   const blob=new Blob(['\ufeff'+html],{type:'application/vnd.ms-excel;charset=utf-8'});
