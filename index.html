@@ -361,7 +361,17 @@ body.somente-consulta #btn-xls{display:none}
 .c-of-mng{background:var(--bg2);border:1px solid var(--line);color:var(--txt3);border-radius:9px;width:40px;font-size:16px;cursor:pointer;flex-shrink:0}
 .c-of-mng:hover{border-color:var(--blue);color:var(--blue2)}
 .of-row{display:flex;align-items:center;gap:8px;padding:11px 12px;border:1px solid var(--line);border-radius:10px;margin-bottom:7px;background:var(--bg2)}
-.of-n{flex:1;font-size:14px;font-weight:600;color:var(--txt)}
+.of-main{flex:1;display:flex;flex-direction:column;gap:2px}
+.of-n{font-size:14px;font-weight:600;color:var(--txt)}
+.of-det{font-size:11.5px;color:var(--txt3)}
+.of-form{display:flex;flex-direction:column;gap:8px}
+.of-form-row{display:flex;gap:8px}
+.of-form-row .c-sel{flex:0 0 130px}
+.of-form-row .c-inp-mot{flex:1;min-width:0}
+.of-edit{flex:1;display:flex;flex-direction:column;gap:7px}
+.of-edit-acts{display:flex;gap:7px}
+.of-save{padding:7px 14px;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;border:none;background:var(--blue);color:#fff}
+.of-cancel{padding:7px 14px;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--line);background:transparent;color:var(--txt2)}
 .of-u{font-size:10px;font-weight:700;background:rgba(245,158,11,.18);color:var(--amber);padding:2px 8px;border-radius:8px}
 .of-e,.of-d{padding:6px 10px;border-radius:7px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid var(--line);background:transparent;color:var(--txt2)}
 .of-e:hover{border-color:var(--blue);color:var(--blue2)}
@@ -631,7 +641,14 @@ body.somente-consulta #btn-xls{display:none}
 <div class="mbg" id="ofmodal"><div class="modal3" style="max-width:460px">
   <div class="m3-head"><div><h3>Oficinas cadastradas</h3><span id="of-sub"></span></div><button class="m3-x" id="of-close">&times;</button></div>
   <div class="vm-body">
-    <div class="c-add-row"><input class="c-inp-mot" id="of-nova" placeholder="Nome da nova oficina"/><button class="c-add-btn" id="of-add" style="margin-left:0">Cadastrar</button></div>
+    <div class="of-form">
+      <input class="c-inp-mot" id="of-nova" placeholder="Nome da oficina"/>
+      <div class="of-form-row">
+        <select id="of-uf" class="c-sel"><option value="">Estado (UF)*</option></select>
+        <input class="c-inp-mot" id="of-tel" placeholder="Telefone (opcional)"/>
+      </div>
+      <button class="c-add-btn" id="of-add" style="margin-left:0;width:100%">Cadastrar oficina</button>
+    </div>
     <div id="of-msg" style="font-size:12px;min-height:16px;margin:6px 0"></div>
     <div id="of-list" style="max-height:340px;overflow-y:auto;margin-top:6px"></div>
   </div>
@@ -661,23 +678,27 @@ async function loadOficinas(){
   try{const {data,error}=await sb.from('oficinas').select('*').order('nome');if(error)throw error;OFICINAS=data||[];saveOfic();}
   catch(e){console.warn('Falha ao carregar oficinas',e);}
 }
-async function addOficina(nome){
+async function addOficina(nome,uf,telefone){
   nome=(nome||'').trim();if(!nome)return null;
+  uf=(uf||'').trim().toUpperCase();telefone=(telefone||'').trim();
   const existe=OFICINAS.find(o=>o.nome.toLowerCase()===nome.toLowerCase());
   if(existe)return existe;
-  if(sbOk){try{const {data,error}=await sb.from('oficinas').insert({nome}).select().single();if(!error&&data){OFICINAS.push(data);OFICINAS.sort((a,b)=>a.nome.localeCompare(b.nome));saveOfic();return data;}}catch(e){console.warn('add oficina',e);}}
-  const loc={id:'local-'+Date.now(),nome};OFICINAS.push(loc);OFICINAS.sort((a,b)=>a.nome.localeCompare(b.nome));saveOfic();return loc;
+  const rec={nome,uf,telefone};
+  if(sbOk){try{const {data,error}=await sb.from('oficinas').insert(rec).select().single();if(!error&&data){OFICINAS.push(data);OFICINAS.sort((a,b)=>a.nome.localeCompare(b.nome));saveOfic();return data;}}catch(e){console.warn('add oficina',e);}}
+  const loc=Object.assign({id:'local-'+Date.now()},rec);OFICINAS.push(loc);OFICINAS.sort((a,b)=>a.nome.localeCompare(b.nome));saveOfic();return loc;
 }
-async function updOficina(id,nome){
+async function updOficina(id,nome,uf,telefone){
   nome=(nome||'').trim();if(!nome)return;
-  const o=OFICINAS.find(x=>x.id===id);if(!o)return;
-  const antigo=o.nome;o.nome=nome;OFICINAS.sort((a,b)=>a.nome.localeCompare(b.nome));saveOfic();
-  if(sbOk&&typeof id==='number'){try{await sb.from('oficinas').update({nome}).eq('id',id);
-    // atualiza os veiculos que usavam o nome antigo
-    for(const uf in DATA)for(const v of DATA[uf].veiculos){if(v.oficina===antigo){v.oficina=nome;pushVeiculo(v.placa);}}
-    save();
+  uf=(uf||'').trim().toUpperCase();telefone=(telefone||'').trim();
+  const o=OFICINAS.find(x=>String(x.id)===String(id));if(!o)return;
+  const antigo=o.nome;o.nome=nome;o.uf=uf;o.telefone=telefone;OFICINAS.sort((a,b)=>a.nome.localeCompare(b.nome));saveOfic();
+  if(sbOk&&typeof id==='number'){try{await sb.from('oficinas').update({nome,uf,telefone}).eq('id',id);
+    if(antigo!==nome){for(const uf2 in DATA)for(const v of DATA[uf2].veiculos){if(v.oficina===antigo){v.oficina=nome;pushVeiculo(v.placa);}}save();}
   }catch(e){console.warn('upd oficina',e);}}
 }
+// acha a oficina cadastrada pelo nome (para mostrar UF junto nos carros)
+function oficinaInfo(nome){return OFICINAS.find(o=>o.nome===nome)||null;}
+function oficinaLabel(nome){const o=oficinaInfo(nome);if(!o)return nome||'';return o.nome+(o.uf?' &middot; '+o.uf:'');}
 async function delOficina(id){
   const i=OFICINAS.findIndex(x=>x.id===id);if(i<0)return;
   OFICINAS.splice(i,1);saveOfic();
@@ -983,11 +1004,8 @@ function renderCons(){
   arr.sort((a,b)=>(b.v.status==='SEVERA')-(a.v.status==='SEVERA')||(daysIn(b.v)||0)-(daysIn(a.v)||0));
   list.innerHTML=arr.map(({v,uf})=>{
     const sev=v.status==='SEVERA';
-    const d=daysIn(v);
-    const dtxt=d===null?'':(d===0?'entrou hoje':d+'d parado');
-    const dcol=d>=15?'#fca5a5':(d>=7?'#fcd34d':'var(--txt3)');
     return '<div class="cons-car '+(sev?'sev':'')+'"><div class="cons-car-top"><span class="cons-plate">'+v.placa+'</span><span class="pf-tag">'+v.perfil+'</span>'+projBadge(v)+tipoBadges(v)+'</div>'
-      +'<div class="cons-car-meta"><b>'+uf+'</b> &middot; '+v.base+(isTransf(v)?' <span style="color:#a78bfa">(transf.)</span>':'')+(dtxt?' &middot; <b style="color:'+dcol+'">'+dtxt+'</b>':'')+'</div>'
+      +'<div class="cons-car-meta"><b>'+uf+'</b> &middot; '+v.base+(isTransf(v)?' <span style="color:#a78bfa">(transf.)</span>':'')+'</div>'
       +'<div class="cons-prev">'+prevPill3(v)+'</div>'
       +'<div class="cons-mot">'+(v.motivo||v.detalhe||'sem motivo informado')+'</div></div>';
   }).join('');
@@ -1199,7 +1217,7 @@ function renderManut(){
         +'<span class="mrow-pv" style="color:'+pvc+'">'+pv+'</span>'
         +'<span class="mrow-cv">&#9662;</span></div>'
         +'<div class="mrow-det"><div class="mrow-badges">'+tipoBadges(v)+projBadge(v)+'<span class="pf-tag">'+v.perfil+'</span></div>'
-        +(v.oficina?'<div class="mrow-of"><i class="ti ti-building-warehouse"></i> '+v.oficina+'</div>':'')
+        +(v.oficina?'<div class="mrow-of"><i class="ti ti-building-warehouse"></i> '+oficinaLabel(v.oficina)+'</div>':'')
         +'<div class="mrow-mot">'+(v.motivo||v.detalhe||'Sem motivo informado')+'</div></div></div>';
     };
     let ml;
@@ -1320,7 +1338,7 @@ function renderConf(){
     const dcol=d>=15?'#fca5a5':(d>=7?'#fcd34d':'var(--txt2)');
     const conf=foiConferido(v.placa);
     const dot='<span class="conf-dot '+(conf?'ok':'pend')+'" title="'+(conf?'conferido hoje':'a conferir')+'"></span>';
-    return '<div class="c-item'+(conf?' conferido':'')+'" data-p="'+v.placa+'">'+dot+'<div class="c-info"><div class="c-top"><span class="tplate2">'+v.placa+'</span><span class="pf-tag">'+v.perfil+'</span>'+projBadge(v)+tipoBadges(v)+'</div><div class="c-meta">'+uf+' &middot; '+v.base+(isTransf(v)?' <span style="color:#a78bfa">(transf.)</span>':'')+' &middot; <b style="color:'+dcol+'">'+dtxt+'</b></div><div class="c-mot">'+(v.oficina?'<b style="color:var(--blue2)">'+v.oficina+'</b> &middot; ':'')+(v.motivo||v.detalhe||'sem motivo informado')+'</div><div class="c-edit-wrap" id="cedit-'+v.placa+'"></div></div><div class="c-acts"><button class="c-edit" data-p="'+v.placa+'">editar</button><button class="c-stay" data-p="'+v.placa+'">Ainda esta</button><button class="c-out" data-p="'+v.placa+'">Saiu</button></div></div>';
+    return '<div class="c-item'+(conf?' conferido':'')+'" data-p="'+v.placa+'">'+dot+'<div class="c-info"><div class="c-top"><span class="tplate2">'+v.placa+'</span><span class="pf-tag">'+v.perfil+'</span>'+projBadge(v)+tipoBadges(v)+'</div><div class="c-meta">'+uf+' &middot; '+v.base+(isTransf(v)?' <span style="color:#a78bfa">(transf.)</span>':'')+' &middot; <b style="color:'+dcol+'">'+dtxt+'</b></div><div class="c-mot">'+(v.oficina?'<b style="color:var(--blue2)">'+oficinaLabel(v.oficina)+'</b> &middot; ':'')+(v.motivo||v.detalhe||'sem motivo informado')+'</div><div class="c-edit-wrap" id="cedit-'+v.placa+'"></div></div><div class="c-acts"><button class="c-edit" data-p="'+v.placa+'">editar</button><button class="c-stay" data-p="'+v.placa+'">Ainda esta</button><button class="c-out" data-p="'+v.placa+'">Saiu</button></div></div>';
   }).join('');
   list.querySelectorAll('.c-out').forEach(b=>b.onclick=()=>{const r=findP(b.dataset.p);if(r){histFechar(r.v.placa);r.v.status='OK';delete r.v.motivo;delete r.v.prev;delete r.v.entrada;r.v.tipos_manut='';r.v.andamento='';r.v.oficina='';r.v.conferido_em=today();save();pushVeiculo(r.v.placa);renderConf();refreshAll();}});
   list.querySelectorAll('.c-stay').forEach(b=>b.onclick=()=>{marcarConferido(b.dataset.p);renderConf();});
@@ -1336,9 +1354,7 @@ function toggleCEdit(placa){
   const ofSel=wrap.querySelector('.ce-ofc');
   ofSel.addEventListener('change',async function(){
     if(this.value==='__nova__'){
-      const nome=prompt('Nome da nova oficina:');
-      if(nome&&nome.trim()){const o=await addOficina(nome);this.innerHTML=oficinaOptions(o?o.nome:'');if(o)this.value=o.nome;}
-      else{this.value=v.oficina||'';}
+      const o=await promptNovaOficina();this.innerHTML=oficinaOptions(o?o.nome:(v.oficina||''));if(o)this.value=o.nome;else this.value=v.oficina||'';
     }
   });
   function updVis(){pwrap.style.display=and.value?'none':'';}updVis();
@@ -1363,30 +1379,44 @@ document.getElementById('c-toggle-add').onclick=()=>{const box=document.getEleme
 // escolher "+ cadastrar nova" abre o prompt
 document.getElementById('c-oficina').addEventListener('change',async function(){
   if(this.value==='__nova__'){
-    const nome=prompt('Nome da nova oficina:');
-    if(nome&&nome.trim()){
-      const o=await addOficina(nome);
-      this.innerHTML=oficinaOptions(o?o.nome:'');
-      if(o)this.value=o.nome;
-    }else{this.value='';}
+    const o=await promptNovaOficina();
+    this.innerHTML=oficinaOptions(o?o.nome:'');
+    if(o)this.value=o.nome;else this.value='';
   }
 });
 document.getElementById('c-of-mng').onclick=openOfic;
 /* ---- gerenciar oficinas ---- */
 function usoOficina(nome){let n=0;for(const uf in DATA)DATA[uf].veiculos.forEach(v=>{if(v.oficina===nome&&v.status!=='OK')n++;});return n;}
+// cadastro rapido de oficina (nome + UF obrigatorio) usado nos selects dos carros
+async function promptNovaOficina(){
+  const nome=prompt('Nome da nova oficina:');
+  if(!nome||!nome.trim())return null;
+  let uf=prompt('Estado (UF) da oficina — ex: CE, RN, SP:');
+  uf=(uf||'').trim().toUpperCase();
+  if(!UFS_BR.includes(uf)){alert('UF invalida. A oficina precisa de um estado valido. Cadastro cancelado.');return null;}
+  return await addOficina(nome,uf,'');
+}
 function renderOfic(){
   const l=document.getElementById('of-list');
   document.getElementById('of-sub').textContent=OFICINAS.length+' oficina'+(OFICINAS.length!==1?'s':'');
   if(!OFICINAS.length){l.innerHTML='<div class="empty">Nenhuma oficina cadastrada ainda.</div>';return;}
   l.innerHTML=OFICINAS.map(o=>{
     const n=usoOficina(o.nome);
-    return '<div class="of-row" data-id="'+o.id+'"><span class="of-n">'+o.nome+'</span>'+(n?'<span class="of-u">'+n+' em uso</span>':'')+'<button class="of-e" data-id="'+o.id+'">editar</button><button class="of-d" data-id="'+o.id+'">excluir</button></div>';
+    const det=[o.uf||'—',o.telefone||'sem telefone'].join(' &middot; ');
+    return '<div class="of-row" data-id="'+o.id+'"><div class="of-main"><span class="of-n">'+o.nome+'</span><span class="of-det">'+det+'</span></div>'+(n?'<span class="of-u">'+n+' em uso</span>':'')+'<button class="of-e" data-id="'+o.id+'">editar</button><button class="of-d" data-id="'+o.id+'">excluir</button></div>';
   }).join('');
   l.querySelectorAll('.of-e').forEach(b=>b.onclick=async()=>{
-    const id=isNaN(+b.dataset.id)?b.dataset.id:+b.dataset.id;
     const o=OFICINAS.find(x=>String(x.id)===String(b.dataset.id));if(!o)return;
-    const novo=prompt('Novo nome para "'+o.nome+'":',o.nome);
-    if(novo&&novo.trim()&&novo.trim()!==o.nome){await updOficina(o.id,novo.trim());renderOfic();refreshAll();}
+    const row=b.closest('.of-row');
+    row.innerHTML='<div class="of-edit"><input class="c-inp-mot ofe-n" value="'+(o.nome||'').replace(/"/g,'&quot;')+'"/><div class="of-form-row"><select class="c-sel ofe-uf">'+ufSelectOptions(o.uf||'')+'</select><input class="c-inp-mot ofe-tel" value="'+(o.telefone||'').replace(/"/g,'&quot;')+'" placeholder="Telefone (opcional)"/></div><div class="of-edit-acts"><button class="of-save">salvar</button><button class="of-cancel">cancelar</button></div></div>';
+    row.querySelector('.of-cancel').onclick=renderOfic;
+    row.querySelector('.of-save').onclick=async()=>{
+      const nn=row.querySelector('.ofe-n').value.trim();
+      const nu=row.querySelector('.ofe-uf').value;
+      const nt=row.querySelector('.ofe-tel').value.trim();
+      if(!nn||!nu){alert('Nome e estado (UF) sao obrigatorios.');return;}
+      await updOficina(o.id,nn,nu,nt);renderOfic();refreshAll();
+    };
   });
   l.querySelectorAll('.of-d').forEach(b=>b.onclick=async()=>{
     const o=OFICINAS.find(x=>String(x.id)===String(b.dataset.id));if(!o)return;
@@ -1395,7 +1425,9 @@ function renderOfic(){
     if(confirm('Excluir a oficina "'+o.nome+'"?'+aviso)){await delOficina(o.id);renderOfic();}
   });
 }
-function openOfic(){document.getElementById('ofmodal').classList.add('open');document.getElementById('of-msg').textContent='';document.getElementById('of-nova').value='';renderOfic();}
+const UFS_BR=['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO'];
+function ufSelectOptions(sel){return '<option value="">Estado (UF)*</option>'+UFS_BR.map(u=>'<option value="'+u+'"'+(sel===u?' selected':'')+'>'+u+'</option>').join('');}
+function openOfic(){document.getElementById('ofmodal').classList.add('open');document.getElementById('of-msg').textContent='';document.getElementById('of-nova').value='';document.getElementById('of-uf').innerHTML=ufSelectOptions('');document.getElementById('of-tel').value='';renderOfic();}
 document.getElementById('of-close').onclick=()=>{document.getElementById('ofmodal').classList.remove('open');
   // atualiza os selects de oficina que estiverem abertos
   const cs=document.getElementById('c-oficina');if(cs){const cur=cs.value;cs.innerHTML=oficinaOptions(cur);}
@@ -1404,10 +1436,14 @@ document.getElementById('ofmodal').onclick=e=>{if(e.target.id==='ofmodal')docume
 document.getElementById('of-add').onclick=async()=>{
   const inp=document.getElementById('of-nova'),msg=document.getElementById('of-msg');
   const nome=inp.value.trim();
+  const uf=document.getElementById('of-uf').value;
+  const tel=document.getElementById('of-tel').value.trim();
   if(!nome){msg.style.color=PAL.red;msg.textContent='Digite o nome da oficina.';return;}
+  if(!uf){msg.style.color=PAL.red;msg.textContent='Selecione o estado (UF) da oficina.';return;}
   const dup=OFICINAS.find(o=>o.nome.toLowerCase()===nome.toLowerCase());
   if(dup){msg.style.color=PAL.amber;msg.textContent='Essa oficina ja esta cadastrada.';return;}
-  await addOficina(nome);inp.value='';
+  await addOficina(nome,uf,tel);
+  inp.value='';document.getElementById('of-uf').value='';document.getElementById('of-tel').value='';
   msg.style.color=PAL.green;msg.textContent='Oficina "'+nome+'" cadastrada.';
   renderOfic();
 };
