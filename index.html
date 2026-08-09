@@ -1090,7 +1090,7 @@ function preventivasResumo(view){
 let EMAIL_BASES=JSON.parse(localStorage.getItem('email_bases')||'{}');   // {"JPA CO":["x@..","y@.."]}
 let EMAIL_RESP=JSON.parse(localStorage.getItem('email_resp')||'{}');     // {"Bruno Barros":["b@.."]}
 const EMAIL_TESTE='evellynricarte@gmail.com';
-let MODO_TESTE_EMAIL=true;
+let MODO_TESTE_EMAIL=false;
 function salvarEmailBases(){localStorage.setItem('email_bases',JSON.stringify(EMAIL_BASES));localStorage.setItem('email_resp',JSON.stringify(EMAIL_RESP));}
 function montarEmailHtml(titulo,d,tipo){
   const pend=d.alerta+d.vencida;const pct=pend?Math.round(d.realizados/pend*100):100;
@@ -1156,11 +1156,24 @@ async function enviarEmailsPreventivas(){
     }
   });
   if(!ordens.length){alert('Nenhum grupo com pendencia E com email cadastrado.\\n\\n(No modo teste tudo vai pro seu email; fora dele, cadastre os emails no Gerenciar.)');return;}
-  if(!confirm('Enviar '+ordens.length+' email(s)?'+(MODO_TESTE_EMAIL?'\\n\\n[MODO TESTE] Todos irao para '+EMAIL_TESTE:''))) return;
+  // MODO TESTE: envia so 4 de exemplo pra nao lotar a caixa
+  if(MODO_TESTE_EMAIL && ordens.length>4){
+    ordens=ordens.slice(0,4);
+  }
+  // PROTECAO 1: ja enviou hoje?
+  const hoje=new Date().toLocaleDateString('en-CA');
+  const ultimoEnvio=localStorage.getItem('prev_ultimo_envio');
+  if(ultimoEnvio===hoje){
+    if(!confirm('Voce JA enviou os emails de preventivas hoje.\\n\\nDeseja enviar novamente mesmo assim?')) return;
+  }
+  if(!confirm('Enviar '+ordens.length+' email(s)?'+(MODO_TESTE_EMAIL?'\\n\\n[MODO TESTE] Apenas '+ordens.length+' de exemplo, todos para '+EMAIL_TESTE:''))) return;
   if(sbOk){
     try{
+      // PROTECAO 2: limpa ordens pendentes antigas (nao enviadas) antes de gravar novas
+      await sb.from('envio_preventivas').delete().eq('status','pendente');
       const {error}=await sb.from('envio_preventivas').insert(ordens);
       if(error)throw error;
+      localStorage.setItem('prev_ultimo_envio',hoje);
       alert(ordens.length+' email(s) na fila de envio!'+(MODO_TESTE_EMAIL?'\\nModo teste: indo para '+EMAIL_TESTE:''));
     }catch(e){alert('Erro ao gravar ordens: '+(e.message||e));return;}
   }else{
