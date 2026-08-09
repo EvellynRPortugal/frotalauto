@@ -84,6 +84,7 @@ body.somente-consulta .c-add-box,
 body.somente-consulta #vm-save,
 body.somente-consulta #v-add-btn,
 body.somente-consulta #pv-gerenciar,
+body.somente-consulta #pv-enviar,
 body.somente-consulta #vd-actions,
 body.somente-consulta .vle[data-h],
 body.somente-consulta .vbdg-hist,
@@ -120,6 +121,8 @@ body.somente-consulta #view-manut{display:none!important}
 .pv-head{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:16px}
 .pv-gerenciar{background:var(--surf);border:1px solid var(--line);color:var(--txt2);padding:9px 16px;border-radius:10px;font-weight:600;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:7px;box-shadow:var(--shadow-sm)}
 .pv-gerenciar:hover{border-color:var(--blue2);color:var(--blue2)}
+.pv-enviar{background:linear-gradient(135deg,var(--blue),var(--blue2));border:none;color:#16191d;padding:9px 16px;border-radius:10px;font-weight:700;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:7px;margin-left:8px;box-shadow:var(--shadow-sm)}
+.pv-enviar:hover{filter:brightness(1.08)}
 .pv-btn-imp{background:linear-gradient(135deg,var(--blue),var(--blue2));color:#16191d;border:none;padding:11px 20px;border-radius:11px;font-weight:700;font-size:14px;cursor:pointer;display:inline-flex;align-items:center;gap:8px;width:100%;justify-content:center}
 .pv-btn-imp:hover{filter:brightness(1.08)}
 .pv-base-info{font-size:13px;color:var(--txt2);background:var(--surf);border:1px solid var(--line);padding:9px 15px;border-radius:10px;display:flex;align-items:center;gap:7px}
@@ -708,6 +711,7 @@ body.somente-consulta #view-manut{display:none!important}
   <div class="pv-head">
     <div class="pv-base-info" id="pv-base-info"></div>
     <button class="pv-gerenciar" id="pv-gerenciar"><i class="ti ti-settings"></i> Gerenciar</button>
+    <button class="pv-enviar" id="pv-enviar"><i class="ti ti-mail"></i> Enviar emails</button>
   </div>
   <div class="pv-views">
     <button class="pv-vtab active" data-pv="geral">Geral</button>
@@ -1066,6 +1070,71 @@ function preventivasResumo(view){
   }
   return meta;
 }
+// ---- ENVIO DE EMAILS DE PREVENTIVAS ----
+// emails de destino por base (voce cadastra; guardado no localStorage por enquanto)
+let EMAIL_BASES=JSON.parse(localStorage.getItem('email_bases')||'{}');
+const EMAIL_TESTE='evellynricarte@gmail.com'; // enquanto testa, tudo vai pra ca
+let MODO_TESTE_EMAIL=true; // true = manda tudo pro email teste
+function salvarEmailBases(){localStorage.setItem('email_bases',JSON.stringify(EMAIL_BASES));}
+// monta o corpo HTML do email de uma base (visual aprovado pela Eve)
+function montarEmailHtml(base,d){
+  const pend=d.alerta+d.vencida;const pct=pend?Math.round(d.realizados/pend*100):100;
+  const col=pct>=100?'#5ec9a0':(pct>=50?'#e0a94a':'#e0645f');
+  const hoje=new Date().toLocaleDateString('pt-BR');
+  const linhas=(d.detalhe||[]).filter(x=>x.status==='vencida'||x.status==='alerta').map(x=>{
+    const venc=x.status==='vencida';
+    const bg=venc?'#fdecec':'#fdf6e8',cor=venc?'#d9433c':'#c8912b',txt=venc?'VENCIDA':'ALERTA';
+    return '<tr style="border-bottom:1px solid #f0f0f0"><td style="padding:10px 4px;font-family:monospace;font-weight:700;color:#333;font-size:14px">'+x.placa+'</td><td style="text-align:right;padding:10px 4px"><span style="background:'+bg+';color:'+cor+';font-size:11px;font-weight:700;padding:3px 10px;border-radius:5px">'+txt+'</span></td></tr>';
+  }).join('');
+  return `<div style="max-width:600px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif">
+<div style="background:#013A7B;padding:22px 28px;text-align:center">
+<div style="color:#F5C842;font-size:12px;font-weight:700;letter-spacing:2px;text-transform:uppercase">L'auto Cargo</div>
+<div style="color:#fff;font-size:20px;font-weight:700;margin-top:4px">Preventivas Pendentes</div>
+<div style="color:#9fb8d8;font-size:13px;margin-top:3px">Base ${base} &middot; ${hoje}</div></div>
+<div style="padding:28px">
+<p style="color:#333;font-size:15px;line-height:1.6;margin:0 0 20px">Olá, equipe da base <b>${base}</b>!</p>
+<p style="color:#555;font-size:14px;line-height:1.6;margin:0 0 24px">Segue o status das preventivas pendentes da sua base. Por favor, providenciem a realização o quanto antes.</p>
+<div style="background:#fdf3f2;border-left:4px solid #e0645f;border-radius:6px;padding:14px 16px;margin-bottom:24px">
+<div style="color:#c0392b;font-size:13px;font-weight:700;margin-bottom:3px">⚠️ Atenção</div>
+<div style="color:#7a3530;font-size:13px;line-height:1.5">O veículo está sujeito a <b>bloqueio</b> caso a preventiva não seja realizada.</div></div>
+<div style="background:#f7f9fc;border:1px solid #e3e8f0;border-radius:10px;padding:20px;margin-bottom:24px;text-align:center">
+<div style="color:#888;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Farol da base</div>
+<div style="font-size:38px;font-weight:800;color:${col};line-height:1">${pct}%</div>
+<div style="color:#888;font-size:13px;margin-top:6px">${d.realizados} de ${pend} realizadas</div></div>
+<div style="margin-bottom:24px"><table style="width:100%;border-collapse:collapse"><tr style="border-bottom:2px solid #eee"><th style="text-align:left;padding:8px 4px;font-size:11px;color:#999;text-transform:uppercase">Placa</th><th style="text-align:right;padding:8px 4px;font-size:11px;color:#999;text-transform:uppercase">Status</th></tr>${linhas}</table></div>
+<p style="color:#777;font-size:13px;line-height:1.6;margin:24px 0 0">Qualquer dúvida, estou à disposição.</p>
+<p style="color:#333;font-size:14px;margin:16px 0 0"><b>Evellyn</b><br><span style="color:#888;font-size:13px">Analista de Frota &middot; L'auto Cargo</span></p></div>
+<div style="background:#f7f9fc;padding:16px 28px;text-align:center;border-top:1px solid #eee"><div style="color:#aaa;font-size:11px">Email do painel de gestão de frota.</div></div></div>`;
+}
+// grava as ordens de envio no Supabase (Power Automate le e envia)
+async function enviarEmailsPreventivas(){
+  const base=prevBase();
+  if(!base){alert('Marque uma base do mes primeiro.');return;}
+  // usa a visao GERAL (todas as bases) para os emails
+  const resumo=preventivasResumo('geral');
+  const comPendencia=Object.keys(resumo).filter(u=>{const d=resumo[u];return (d.alerta+d.vencida)>0 && d.realizados<(d.alerta+d.vencida);});
+  if(!comPendencia.length){alert('Nenhuma base com pendencia para enviar.');return;}
+  // monta as ordens
+  const ordens=comPendencia.map(u=>{
+    const d=resumo[u];const pend=d.alerta+d.vencida;const pct=pend?Math.round(d.realizados/pend*100):100;
+    const destino=MODO_TESTE_EMAIL?EMAIL_TESTE:(EMAIL_BASES[u]||EMAIL_TESTE);
+    return {status:'pendente',base:u,destino,farol_pct:pct,vencidas:d.vencida,alertas:d.alerta,
+      placas:(d.detalhe||[]).filter(x=>x.status==='vencida'||x.status==='alerta').map(x=>({placa:x.placa,status:x.status})),
+      assunto:'[Preventivas] Base '+u+' — '+d.vencida+' vencida(s), '+d.alerta+' em alerta',
+      corpo_html:montarEmailHtml(u,d)};
+  });
+  if(!confirm('Enviar '+ordens.length+' email(s)?'+(MODO_TESTE_EMAIL?'\n\n[MODO TESTE] Todos irao para '+EMAIL_TESTE:''))) return;
+  if(sbOk){
+    try{
+      const {error}=await sb.from('envio_preventivas').insert(ordens);
+      if(error)throw error;
+      alert(ordens.length+' email(s) na fila de envio!'+(MODO_TESTE_EMAIL?'\nModo teste: indo para '+EMAIL_TESTE:''));
+    }catch(e){alert('Erro ao gravar ordens: '+(e.message||e));return;}
+  }else{
+    console.log('Ordens de envio (offline):',ordens);
+    alert('[Offline] '+ordens.length+' ordens preparadas (veja o console). Online, iriam pra fila.');
+  }
+}
 function renderPrev(){
   const base=prevBase();
   // barra de info da base
@@ -1228,6 +1297,7 @@ document.getElementById('pv-import-btn').onclick=()=>document.getElementById('pv
 document.getElementById('pv-file').onchange=e=>{if(e.target.files[0]){importarPreventivas(e.target.files[0]);e.target.value='';}};
 document.querySelectorAll('.pv-vtab').forEach(b=>b.onclick=()=>{document.querySelectorAll('.pv-vtab').forEach(x=>x.classList.remove('active'));b.classList.add('active');PREV_VIEW=b.dataset.pv;renderPrev();});
 document.getElementById('pv-gerenciar').onclick=()=>{document.getElementById('pvmodal').classList.add('open');document.getElementById('pv-alert').style.display='none';renderPrev();};
+document.getElementById('pv-enviar').onclick=enviarEmailsPreventivas;
 document.getElementById('pv-close').onclick=()=>document.getElementById('pvmodal').classList.remove('open');
 document.getElementById('pvmodal').onclick=e=>{if(e.target.id==='pvmodal')document.getElementById('pvmodal').classList.remove('open');};
 document.getElementById('lg-pass').addEventListener('keydown',e=>{if(e.key==='Enter')fazerLogin();});
