@@ -124,6 +124,18 @@ body.somente-consulta #view-manut{display:none!important}
 .pv-enviar{background:linear-gradient(135deg,var(--blue),var(--blue2));border:none;color:#16191d;padding:9px 16px;border-radius:10px;font-weight:700;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:7px;margin-left:8px;box-shadow:var(--shadow-sm)}
 .pv-enviar:hover{filter:brightness(1.08)}
 .pvem-tabs{display:flex;gap:4px;background:var(--bg2);border:1px solid var(--line);border-radius:10px;padding:4px;margin-bottom:12px}
+.pv-acoes-wrap{position:relative}
+.hdr-menu-wrap{position:relative;display:inline-block}
+.hdr-menu{position:absolute;top:calc(100% + 6px);right:0;background:var(--surf2);border:1px solid var(--line);border-radius:11px;box-shadow:0 12px 32px rgba(0,0,0,.4);padding:6px;min-width:210px;z-index:70;display:none;flex-direction:column;gap:2px}
+.hdr-menu.open{display:flex}
+.hdr-menu button{background:none;border:none;color:var(--txt);text-align:left;padding:10px 12px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;display:flex;align-items:center;gap:9px}
+.hdr-menu button:hover{background:var(--surf)}
+.pv-acoes-btn{background:var(--surf);border:1px solid var(--line);color:var(--txt);padding:9px 16px;border-radius:10px;font-weight:600;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:7px;box-shadow:var(--shadow-sm)}
+.pv-acoes-btn:hover{border-color:var(--blue2);color:var(--blue2)}
+.pv-acoes-menu{position:absolute;top:calc(100% + 6px);right:0;background:var(--surf2);border:1px solid var(--line);border-radius:11px;box-shadow:0 12px 32px rgba(0,0,0,.4);padding:6px;min-width:180px;z-index:60;display:none;flex-direction:column;gap:2px}
+.pv-acoes-menu.open{display:flex}
+.pv-acoes-menu button{background:none;border:none;color:var(--txt);text-align:left;padding:10px 12px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;display:flex;align-items:center;gap:9px}
+.pv-acoes-menu button:hover{background:var(--surf)}
 .pvem-tab{flex:1;padding:8px 10px;background:transparent;border:none;border-radius:7px;font-size:12px;font-weight:600;color:var(--txt2);cursor:pointer}
 .pvem-tab.active{background:var(--blue);color:#16191d;font-weight:700}
 #pvem-content{max-height:260px;overflow-y:auto;display:flex;flex-direction:column;gap:7px}
@@ -172,7 +184,7 @@ body.somente-consulta #view-manut{display:none!important}
 .pv-st-alerta{background:rgba(224,169,74,.2);color:#e8c583}
 .pv-st-valida{background:rgba(94,201,160,.2);color:#8fe0c2}
 .pv-st-outro{background:var(--surf2);color:var(--txt3)}
-.pv-total-row td{font-weight:800!important;background:linear-gradient(90deg,rgba(94,201,160,.1),var(--bg2))!important;border-top:2px solid var(--blue)!important;border-bottom:none;font-size:15px!important;color:var(--txt)!important;padding-top:15px!important;padding-bottom:15px!important}
+.pv-total-row td{font-weight:800!important;background:var(--surf2)!important;border-top:2px solid var(--gold)!important;border-bottom:none;font-size:15px!important;color:var(--txt)!important;padding-top:15px!important;padding-bottom:15px!important}
 .pv-table tbody tr:hover{background:var(--surf2)}
 .pv-table tfoot td{font-weight:800;background:var(--bg2);border-top:2px solid var(--line);border-bottom:none}
 .pv-farol{display:flex;align-items:center;gap:10px;justify-content:center}
@@ -548,8 +560,13 @@ body.somente-consulta #view-manut{display:none!important}
     <span class="hdr-pill"><b id="h-disp">95%</b> disponibilidade</span>
     <span class="hdr-pill" id="sync-status"><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#6b7f9e;margin-right:6px"></span>Conectando...</span>
     <button class="hdr-pill" id="btn-conf" style="cursor:pointer;border:1px solid var(--blue);background:rgba(59,130,246,.12);color:var(--blue2);font-weight:600"><i class="ti ti-clipboard-check" style="margin-right:5px"></i>Conferencia <span id="conf-badge" style="display:none;background:var(--amber);color:#0a1628;border-radius:9px;padding:0 7px;font-size:11px;margin-left:4px"></span></button>
-    <button class="hdr-pill" id="btn-xls" title="Baixar planilha dos veiculos em manutencao" style="cursor:pointer;padding:6px 12px;color:var(--green);border:1px solid rgba(16,185,129,.45);background:rgba(16,185,129,.1);display:inline-flex;align-items:center;gap:5px;font-weight:600"><i class="ti ti-download"></i>Excel <span style="font-size:10px">&#9660;</span></button>
-    <button class="hdr-pill" id="btn-sair" title="Sair" style="cursor:pointer;padding:6px 11px;color:var(--txt3)"><i class="ti ti-logout"></i></button>
+    <div class="hdr-menu-wrap">
+      <button class="hdr-pill" id="hdr-menu-btn" title="Opcoes" style="cursor:pointer;padding:6px 11px;color:var(--txt2)"><i class="ti ti-settings"></i> <span style="font-size:10px">&#9660;</span></button>
+      <div class="hdr-menu" id="hdr-menu">
+        <button id="btn-xls"><i class="ti ti-file-spreadsheet"></i> Baixar Excel (manutencao)</button>
+        <button id="btn-sair"><i class="ti ti-logout"></i> Sair</button>
+      </div>
+    </div>
   </div>
 </header>
 
@@ -718,8 +735,14 @@ body.somente-consulta #view-manut{display:none!important}
 <div class="view" id="view-prev">
   <div class="pv-head">
     <div class="pv-base-info" id="pv-base-info"></div>
-    <button class="pv-gerenciar" id="pv-gerenciar"><i class="ti ti-settings"></i> Gerenciar</button>
-    <button class="pv-enviar" id="pv-enviar"><i class="ti ti-mail"></i> Enviar emails</button>
+    <div class="pv-acoes-wrap">
+      <button class="pv-acoes-btn" id="pv-acoes"><i class="ti ti-dots"></i> Acoes <i class="ti ti-chevron-down"></i></button>
+      <div class="pv-acoes-menu" id="pv-acoes-menu">
+        <button data-ac="gerenciar"><i class="ti ti-settings"></i> Gerenciar</button>
+        <button data-ac="enviar"><i class="ti ti-mail"></i> Enviar emails</button>
+        <button data-ac="excel"><i class="ti ti-file-spreadsheet"></i> Baixar Excel</button>
+      </div>
+    </div>
   </div>
   <div class="pv-views">
     <button class="pv-vtab active" data-pv="geral">Geral</button>
@@ -1203,6 +1226,37 @@ function renderEmailCad(){
     cont.querySelectorAll('.pvem-in').forEach(inp=>inp.onchange=()=>{const v=inp.value.split(',').map(x=>x.trim()).filter(Boolean);if(v.length)EMAIL_RESP[inp.dataset.r]=v;else delete EMAIL_RESP[inp.dataset.r];salvarEmailBases();});
   }
 }
+function baixarExcelPreventivas(){
+  if(!prevBase()){alert('Marque uma base do mes primeiro.');return;}
+  if(typeof XLSX==='undefined'){alert('Biblioteca de Excel ainda carregando, tente de novo em instantes.');return;}
+  const wb=XLSX.utils.book_new();
+  const visoes=[['Geral','geral'],['Coleta e Entrega','coleta'],['Transferencia','trans']];
+  visoes.forEach(([nome,v])=>{
+    const resumo=preventivasResumo(v);
+    const chaves=Object.keys(resumo).sort();
+    const rows=[[v==='trans'?'Responsavel':'Base','Alerta','Vencida','Realizados','Farol %']];
+    let tA=0,tV=0,tR=0;
+    chaves.forEach(k=>{const d=resumo[k];const pend=d.alerta+d.vencida;const pct=pend?Math.round(d.realizados/pend*100):100;tA+=d.alerta;tV+=d.vencida;tR+=d.realizados;rows.push([k,d.alerta,d.vencida,d.realizados,pct+'%']);});
+    const tp=tA+tV;rows.push(['TOTAL GERAL',tA,tV,tR,(tp?Math.round(tR/tp*100):100)+'%']);
+    const ws=XLSX.utils.aoa_to_sheet(rows);
+    ws['!cols']=[{wch:22},{wch:9},{wch:9},{wch:11},{wch:10}];
+    XLSX.utils.book_append_sheet(wb,ws,nome);
+  });
+  // aba com placas pendentes detalhadas
+  const det=[['Grupo','Visao','Placa','Status']];
+  visoes.forEach(([nome,v])=>{
+    const resumo=preventivasResumo(v);
+    Object.keys(resumo).sort().forEach(k=>{
+      (resumo[k].detalhe||[]).filter(x=>x.status==='vencida'||x.status==='alerta').forEach(x=>{
+        det.push([k,nome,x.placa,x.status==='vencida'?'Vencida':'Alerta']);
+      });
+    });
+  });
+  const wsD=XLSX.utils.aoa_to_sheet(det);wsD['!cols']=[{wch:22},{wch:18},{wch:12},{wch:10}];
+  XLSX.utils.book_append_sheet(wb,wsD,'Placas Pendentes');
+  const hoje=new Date().toLocaleDateString('pt-BR').replace(/\//g,'-');
+  XLSX.writeFile(wb,'Preventivas_'+hoje+'.xlsx');
+}
 function renderPrev(){
   const base=prevBase();
   // barra de info da base
@@ -1358,15 +1412,23 @@ async function carregarDados(){
 // handlers do login
 document.getElementById('lg-btn').onclick=fazerLogin;
 document.getElementById('btn-sair').onclick=sair;
+document.getElementById('hdr-menu-btn').onclick=e=>{e.stopPropagation();document.getElementById('hdr-menu').classList.toggle('open');};
+document.addEventListener('click',()=>document.getElementById('hdr-menu')?.classList.remove('open'));
 document.getElementById('cons-search').oninput=renderCons;
 document.querySelectorAll('#cons-tabs .tab').forEach(t=>t.onclick=()=>consNav(t.dataset.cv));
 // preventivas
 document.getElementById('pv-import-btn').onclick=()=>document.getElementById('pv-file').click();
 document.getElementById('pv-file').onchange=e=>{if(e.target.files[0]){importarPreventivas(e.target.files[0]);e.target.value='';}};
 document.querySelectorAll('.pv-vtab').forEach(b=>b.onclick=()=>{document.querySelectorAll('.pv-vtab').forEach(x=>x.classList.remove('active'));b.classList.add('active');PREV_VIEW=b.dataset.pv;renderPrev();});
-document.getElementById('pv-gerenciar').onclick=()=>{document.getElementById('pvmodal').classList.add('open');document.getElementById('pv-alert').style.display='none';renderPrev();renderEmailCad();};
+document.getElementById('pv-acoes').onclick=e=>{e.stopPropagation();document.getElementById('pv-acoes-menu').classList.toggle('open');};
+document.addEventListener('click',()=>document.getElementById('pv-acoes-menu')?.classList.remove('open'));
+document.querySelectorAll('#pv-acoes-menu button').forEach(b=>b.onclick=()=>{
+  const ac=b.dataset.ac;document.getElementById('pv-acoes-menu').classList.remove('open');
+  if(ac==='gerenciar'){document.getElementById('pvmodal').classList.add('open');document.getElementById('pv-alert').style.display='none';renderPrev();renderEmailCad();}
+  if(ac==='enviar')enviarEmailsPreventivas();
+  if(ac==='excel')baixarExcelPreventivas();
+});
 document.querySelectorAll('.pvem-tab').forEach(t=>t.onclick=()=>{document.querySelectorAll('.pvem-tab').forEach(x=>x.classList.remove('active'));t.classList.add('active');PVEM_TAB=t.dataset.et;renderEmailCad();});
-document.getElementById('pv-enviar').onclick=enviarEmailsPreventivas;
 document.getElementById('pv-close').onclick=()=>document.getElementById('pvmodal').classList.remove('open');
 document.getElementById('pvmodal').onclick=e=>{if(e.target.id==='pvmodal')document.getElementById('pvmodal').classList.remove('open');};
 document.getElementById('lg-pass').addEventListener('keydown',e=>{if(e.key==='Enter')fazerLogin();});
@@ -1389,7 +1451,14 @@ function subscribeRealtime(){
 function setStatus(kind,txt){
   const el=document.getElementById('sync-status');if(!el)return;
   const c=kind==='online'?'#10b981':(kind==='offline'?'#f59e0b':'#6b7f9e');
-  el.innerHTML='<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:'+c+';margin-right:6px"></span>'+txt;
+  // conectado = so a bolinha (sem texto); offline/conectando = bolinha + texto
+  if(kind==='online'){
+    el.innerHTML='<span title="Conectado" style="display:inline-block;width:9px;height:9px;border-radius:50%;background:'+c+';box-shadow:0 0 6px '+c+'"></span>';
+    el.style.padding='6px 10px';
+  }else{
+    el.innerHTML='<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:'+c+';margin-right:6px"></span>'+txt;
+    el.style.padding='';
+  }
 }
 
 /* ============ HISTORICO DE MANUTENCOES ============ */
