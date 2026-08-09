@@ -85,6 +85,8 @@ body.somente-consulta #vm-save,
 body.somente-consulta #v-add-btn,
 body.somente-consulta #pv-gerenciar,
 body.somente-consulta #vd-actions,
+body.somente-consulta .vle[data-h],
+body.somente-consulta .vbdg-hist,
 body.somente-consulta #btn-xls{display:none !important}
 body.somente-consulta .bc-mh .r{opacity:.5}
 /* VISAO DE CONSULTA */
@@ -1736,7 +1738,7 @@ function renderVeic(){
     const inativo=v.ativo===false;
     const m=v.status!=='OK'&&!inativo;
     const hr=histResumo(v.placa);
-    const hbadge=hr.vezes>0?'<span class="bdg" style="background:rgba(59,130,246,.18);color:#60a5fa" title="'+hr.vezes+' passagem(ns), '+hr.totalDias+' dias no total">'+hr.vezes+'x · '+hr.totalDias+'d</span>':'';
+    const hbadge=hr.vezes>0?'<span class="bdg vbdg-hist" style="background:rgba(59,130,246,.18);color:#60a5fa" title="'+hr.vezes+' passagem(ns), '+hr.totalDias+' dias no total">'+hr.vezes+'x · '+hr.totalDias+'d</span>':'';
     const statusBadge=inativo?'<span class="bdg" style="background:rgba(120,130,145,.2);color:#9aa7b8">inativo</span>':'';
     return '<div class="vlr'+(inativo?' vlr-inativo':'')+'"><span class="vlp vlp-click" data-d="'+v.placa+'">'+v.placa+'</span><span class="pf-tag">'+v.perfil+'</span><div class="vlm"><div class="vll"><b>'+uf+'</b> &middot; '+v.base+' &middot; '+v.cidade+(isTransf(v)?' <span class="pf-tag" style="background:rgba(167,139,250,.18);color:#a78bfa">transf.</span>':'')+(v.responsavel?' &middot; <span style="color:var(--txt3)">'+v.responsavel+'</span>':'')+'</div><div class="vlpj">'+projBadge(v)+'</div></div>'+statusBadge+(m?'<span class="bdg man">manut.</span>':'')+hbadge+'<button class="vle" style="background:var(--surf2);border:1px solid var(--line)" data-h="'+v.placa+'">Historico</button><button class="vle" data-p="'+v.placa+'">Alterar</button></div>';
   }).join('')+(all.length>400?'<div class="empty" style="font-size:12px">Mostrando 400 de '+all.length+'. Refine a busca.</div>':'');
@@ -1763,9 +1765,18 @@ function openDetalhe(placa){
 }
 function renderDetalhe(){
   const placa=vdPlaca;const r=findAnyV(placa);if(!r)return;const v=r.v;
+  const soConsulta=document.body.classList.contains('somente-consulta');
   document.getElementById('vd-title').textContent=v.placa;
   document.getElementById('vd-sub').textContent=(v.perfil||'')+' · '+(v.marca||'')+' '+(v.modelo||'');
   const inativo=v.ativo===false;
+  // CONSULTA: so ve 6 campos, sem acoes, sem historico
+  if(soConsulta){
+    document.getElementById('vd-actions').innerHTML='';
+    const campos=[['Placa','Placa'],['Unidade','Unidade'],['Projeto','Projeto'],['Regional','Regional'],['Tipo Cavalo','Tipo Cavalo'],['Tipo de Baú','Tipo de Bau']];
+    const linhas=campos.map(([c,rot])=>{const val=bdField(v,c)||(c==='Placa'?v.placa:'');return '<div class="vd-item"><span class="vd-k">'+rot+'</span><span class="vd-v">'+(val||'—')+'</span></div>';}).join('');
+    document.getElementById('vd-content').innerHTML='<div class="vd-grupo"><div class="vd-grid">'+linhas+'</div></div>';
+    return;
+  }
   if(vdEditando){
     document.getElementById('vd-actions').innerHTML='<button class="vd-act vd-salvar" id="vd-save-det"><i class="ti ti-check"></i> Salvar</button><button class="vd-act" id="vd-cancel-det">Cancelar</button>';
   }else{
