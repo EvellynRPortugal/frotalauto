@@ -12,7 +12,7 @@
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
   --bg:#0d0f12; --bg2:#131619; --surf:#16191d; --surf2:#212529; --line:#2a2f35;
-  --txt:#eef1f4; --txt2:#a8b0ba; --txt3:#6b7480;
+  --txt:#f4f7fa; --txt2:#c4ccd6; --txt3:#93a0b0;
   --blue:#8b95a3; --blue2:#c4ccd6; --navy:#014693; --gold:#d4b876;
   --green:#5ec9a0; --amber:#e0a94a; --red:#e0645f;
   --r:14px; --r2:18px;
@@ -391,6 +391,14 @@ body.somente-consulta #btn-xls{display:none}
 .vm-save{width:100%;padding:13px;background:var(--gold);color:#0a1628;border:none;border-radius:10px;font-weight:800;font-size:15px;cursor:pointer}
 .vadd-btn{background:linear-gradient(135deg,var(--green),#3fb98a);color:#08201a;border:none;padding:10px 16px;border-radius:10px;font-weight:700;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
 .vfilters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.vf-toggle{padding:9px 14px;background:var(--surf);border:1px solid var(--line);color:var(--txt2);border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.vf-toggle:hover{border-color:var(--blue2);color:var(--blue2)}
+.vd-edit{background:var(--bg2);border:1px solid var(--line);color:var(--txt);border-radius:7px;padding:5px 9px;font-size:13px;font-weight:600;text-align:right;min-width:130px;max-width:180px}
+.vd-edit:focus{outline:none;border-color:var(--blue)}
+.vd-v-fixo{color:var(--txt3)!important;font-weight:500!important}
+.vd-salvar{background:var(--green)!important;color:#08201a!important;border-color:var(--green)!important}
+.vd-k{font-size:12.5px;color:var(--txt2)}
+.vd-v{font-size:13px;color:var(--txt);font-weight:600;text-align:right}
 .vf{padding:8px 12px;background:var(--surf);border:1px solid var(--line);color:var(--txt2);border-radius:9px;font-size:12.5px;cursor:pointer}
 .vf:focus{outline:none;border-color:var(--blue)}
 .vf-clear{padding:8px 14px;background:transparent;border:1px solid var(--line);color:var(--txt3);border-radius:9px;font-size:12.5px;cursor:pointer}
@@ -411,8 +419,6 @@ body.somente-consulta #btn-xls{display:none}
 .vd-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px 20px}
 @media(max-width:600px){.vd-grid{grid-template-columns:1fr}}
 .vd-item{display:flex;justify-content:space-between;gap:12px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.03)}
-.vd-k{font-size:12.5px;color:var(--txt3)}
-.vd-v{font-size:13px;color:var(--txt);font-weight:600;text-align:right}
 .vm-msg{font-size:13px;margin-top:10px;min-height:16px;text-align:center}
 /* lock */
 .vlock{display:flex;align-items:center;justify-content:center;padding:60px 20px}
@@ -654,16 +660,17 @@ body.somente-consulta #btn-xls{display:none}
     <div class="vh3">
       <div><div style="font-size:16px;font-weight:700">Veiculos da frota</div><div style="font-size:13px;color:var(--txt3);margin-top:3px">Clique em uma placa para ver todos os detalhes. Inativos ficam guardados com historico.</div></div>
       <div style="display:flex;gap:8px;align-items:center">
+        <button class="vf-toggle" id="vf-toggle" title="Filtros"><i class="ti ti-filter"></i> Filtros <i class="ti ti-chevron-down" id="vf-chev"></i></button>
         <input id="vq" class="vs" placeholder="Buscar placa, chassi, base, projeto..."/>
         <button class="vadd-btn" id="v-add-btn"><i class="ti ti-plus"></i> Adicionar</button>
       </div>
     </div>
-    <div class="vfilters" id="vfilters">
+    <div class="vfilters" id="vfilters" style="display:none">
       <select id="vf-status" class="vf"><option value="ativos">Ativos</option><option value="inativos">Inativos</option><option value="todos">Todos</option></select>
       <select id="vf-base" class="vf"><option value="">Todas as bases</option></select>
       <select id="vf-proj" class="vf"><option value="">Todos os projetos</option></select>
       <select id="vf-resp" class="vf"><option value="">Todos responsaveis</option></select>
-      <select id="vf-cavalo" class="vf"><option value="">Tipo cavalo</option></select>
+      <select id="vf-cavalo" class="vf"><option value="">Tipo cavalo (3/4, Toco...)</option></select>
       <select id="vf-class" class="vf"><option value="">Classificacao</option></select>
       <button class="vf-clear" id="vf-clear">Limpar</button>
     </div>
@@ -1713,31 +1720,61 @@ const BD_GRUPOS=[
   ['Documentacao',['Placa','PLACAMERCOSUL','Renavam','Chassi','Final Placa','IMF']],
   ['Especificacoes',['Peso Bruto Total (PBT)','Tara (T)','Carga Útil (L)','Largura','Altura','Comprimento','Capacidade Cúbica (M3)','Eixos Carreta']],
 ];
+// campos que NAO podem ser editados (fixos do veiculo)
+const BD_FIXOS=['Placa','PLACAMERCOSUL','Renavam','Chassi','Final Placa','IMF','Peso Bruto Total (PBT)','Tara (T)','Carga Útil (L)','Largura','Altura','Comprimento','Capacidade Cúbica (M3)','Eixos Carreta'];
+let vdEditando=false, vdPlaca=null;
 function openDetalhe(placa){
-  const r=findAnyV(placa);if(!r)return;const v=r.v;
+  vdPlaca=placa; vdEditando=false;
+  renderDetalhe();
+  document.getElementById('vdmodal').classList.add('open');
+}
+function renderDetalhe(){
+  const placa=vdPlaca;const r=findAnyV(placa);if(!r)return;const v=r.v;
   document.getElementById('vd-title').textContent=v.placa;
   document.getElementById('vd-sub').textContent=(v.perfil||'')+' · '+(v.marca||'')+' '+(v.modelo||'');
-  // acoes: editar operacional, historico, ativar/desativar
   const inativo=v.ativo===false;
-  document.getElementById('vd-actions').innerHTML=
-    '<button class="vd-act" id="vd-editar"><i class="ti ti-edit"></i> Editar operacional</button>'
-    +'<button class="vd-act" id="vd-hist"><i class="ti ti-history"></i> Historico</button>'
-    +(inativo
-      ? '<button class="vd-act vd-reativar" id="vd-toggle"><i class="ti ti-rotate"></i> Reativar veiculo</button>'
-      : '<button class="vd-act vd-desativar" id="vd-toggle"><i class="ti ti-archive"></i> Desativar (vendido)</button>');
-  // conteudo: grupos de campos
+  if(vdEditando){
+    document.getElementById('vd-actions').innerHTML='<button class="vd-act vd-salvar" id="vd-save-det"><i class="ti ti-check"></i> Salvar</button><button class="vd-act" id="vd-cancel-det">Cancelar</button>';
+  }else{
+    document.getElementById('vd-actions').innerHTML=
+      '<button class="vd-act" id="vd-editar"><i class="ti ti-edit"></i> Editar operacional</button>'
+      +'<button class="vd-act" id="vd-hist"><i class="ti ti-history"></i> Historico</button>'
+      +(inativo?'<button class="vd-act vd-reativar" id="vd-toggle"><i class="ti ti-rotate"></i> Reativar veiculo</button>':'<button class="vd-act vd-desativar" id="vd-toggle"><i class="ti ti-archive"></i> Desativar (vendido)</button>');
+  }
   let html='';
   if(inativo)html+='<div class="vd-inativo-aviso"><i class="ti ti-archive"></i> Veiculo inativo — fora da operacao, mas com historico preservado.</div>';
   BD_GRUPOS.forEach(([titulo,campos])=>{
-    const linhas=campos.map(c=>{const val=bdField(v,c);return val?'<div class="vd-item"><span class="vd-k">'+c+'</span><span class="vd-v">'+val+'</span></div>':'';}).filter(Boolean).join('');
+    const linhas=campos.map(c=>{
+      const val=bdField(v,c);const fixo=BD_FIXOS.includes(c);
+      if(vdEditando&&!fixo){
+        return '<div class="vd-item"><span class="vd-k">'+c+'</span><input class="vd-edit" data-c="'+c.replace(/"/g,'&quot;')+'" value="'+String(val).replace(/"/g,'&quot;')+'"/></div>';
+      }
+      if(!val&&!vdEditando)return '';
+      return '<div class="vd-item"><span class="vd-k">'+c+'</span><span class="vd-v'+(fixo&&vdEditando?' vd-v-fixo':'')+'">'+(val||'—')+(fixo&&vdEditando?' <i class="ti ti-lock" style="font-size:11px;opacity:.5"></i>':'')+'</span></div>';
+    }).filter(Boolean).join('');
     if(linhas)html+='<div class="vd-grupo"><div class="vd-grupo-t">'+titulo+'</div><div class="vd-grid">'+linhas+'</div></div>';
   });
-  if(!html||html.indexOf('vd-grupo')<0)html+='<div class="empty">Sem dados detalhados para este veiculo.</div>';
   document.getElementById('vd-content').innerHTML=html;
-  document.getElementById('vd-editar').onclick=()=>{document.getElementById('vdmodal').classList.remove('open');openVM(placa);};
-  document.getElementById('vd-hist').onclick=()=>{document.getElementById('vdmodal').classList.remove('open');openHist(placa);};
-  document.getElementById('vd-toggle').onclick=()=>toggleAtivo(placa);
-  document.getElementById('vdmodal').classList.add('open');
+  if(vdEditando){
+    document.getElementById('vd-save-det').onclick=salvarDetalhe;
+    document.getElementById('vd-cancel-det').onclick=()=>{vdEditando=false;renderDetalhe();};
+  }else{
+    document.getElementById('vd-editar').onclick=()=>{vdEditando=true;renderDetalhe();};
+    document.getElementById('vd-hist').onclick=()=>{document.getElementById('vdmodal').classList.remove('open');openHist(placa);};
+    document.getElementById('vd-toggle').onclick=()=>toggleAtivo(placa);
+  }
+}
+async function salvarDetalhe(){
+  const r=findAnyV(vdPlaca);if(!r)return;const v=r.v;
+  if(!v.bd)v.bd={};
+  document.querySelectorAll('.vd-edit').forEach(inp=>{v.bd[inp.dataset.c]=inp.value.trim();});
+  // sincroniza campos-chave do bd com os campos operacionais do painel
+  if(v.bd['Projeto']&&v.bd['Projeto']!=='-')v.projeto=v.bd['Projeto'];
+  if(v.bd['Responsável'])v.responsavel=v.bd['Responsável'];
+  if(v.bd['Marca'])v.marca=v.bd['Marca'];
+  if(v.bd['Modelo'])v.modelo=v.bd['Modelo'];
+  save();pushVeiculo(v.placa);
+  vdEditando=false;renderDetalhe();renderVeic();refreshAll();
 }
 async function toggleAtivo(placa){
   const r=findAnyV(placa);if(!r)return;const v=r.v;const inativo=v.ativo===false;
@@ -1812,6 +1849,7 @@ document.getElementById('vq').oninput=renderVeic;
 ['vf-status','vf-base','vf-proj','vf-resp','vf-cavalo','vf-class'].forEach(id=>{const el=document.getElementById(id);if(el)el.onchange=renderVeic;});
 document.getElementById('vf-clear').onclick=()=>{['vf-base','vf-proj','vf-resp','vf-cavalo','vf-class'].forEach(id=>document.getElementById(id).value='');document.getElementById('vf-status').value='ativos';document.getElementById('vq').value='';renderVeic();};
 document.getElementById('v-add-btn').onclick=openAddVeic;
+document.getElementById('vf-toggle').onclick=()=>{const f=document.getElementById('vfilters');const aberto=f.style.display!=='none';f.style.display=aberto?'none':'flex';document.getElementById('vf-chev').className='ti ti-chevron-'+(aberto?'down':'up');};
 document.getElementById('vd-close').onclick=()=>document.getElementById('vdmodal').classList.remove('open');
 document.getElementById('vdmodal').onclick=e=>{if(e.target.id==='vdmodal')document.getElementById('vdmodal').classList.remove('open');};
 let vmPlaca=null;
