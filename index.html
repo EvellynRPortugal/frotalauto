@@ -660,7 +660,7 @@ body.somente-consulta #view-manut{display:none!important}
   <div class="kpi-grid">
     <div class="kpi b-blue"><div class="lbl">Frota total</div><div class="val" id="mm-tot">0</div></div>
     <div class="kpi b-amber"><div class="lbl">Em manutencao</div><div class="val" id="mm-man">0</div></div>
-    <div class="kpi b-green"><div class="lbl">Operacionais</div><div class="val" id="mm-op">0</div></div>
+    <div class="kpi b-green mkpi-click" data-mf="libhoje"><div class="lbl">Liberacao hoje <i class="ti ti-click mkpi-ic"></i></div><div class="val" id="mm-libhoje">0</div></div>
     <div class="kpi b-red mkpi-click" data-mf="atrasado"><div class="lbl">Atrasados <i class="ti ti-click mkpi-ic"></i></div><div class="val" id="mm-late">0</div></div>
   </div>
   <div class="kpi-grid" style="margin-top:-8px">
@@ -1594,6 +1594,7 @@ function passaCardFilter(v){
   if(mfCardFilter==='corretiva')return v.status!=='SEVERA'&&hasTipo('corretiva')&&!hasTipo('preventiva');
   if(mfCardFilter==='preventiva')return v.status!=='SEVERA'&&hasTipo('preventiva');
   if(mfCardFilter==='conferencia')return v.status!=='OK'&&!confHoje(v);
+  if(mfCardFilter==='libhoje')return v.status!=='OK'&&v.prev===today();
   return true;
 }
 function renderManut(){
@@ -1603,7 +1604,8 @@ function renderManut(){
   const man=scope.filter(x=>x.v.status!=='OK'),late=scope.filter(x=>isLate(x.v));
   document.getElementById('mm-tot').textContent=scope.length;
   document.getElementById('mm-man').textContent=man.length;
-  document.getElementById('mm-op').textContent=scope.length-man.length;
+  const libhoje=scope.filter(x=>x.v.status!=='OK'&&x.v.prev===today());
+  document.getElementById('mm-libhoje').textContent=libhoje.length;
   document.getElementById('mm-late').textContent=late.length;
   // KPIs por tipo de manutencao
   const hasTipo=(v,t)=>(v.tipos_manut||'').split(',').includes(t);
@@ -1620,7 +1622,7 @@ function renderManut(){
   if(el('mm-conf'))el('mm-conf').textContent=conf.length;
   // destaque do card ativo + mensagem de filtro
   document.querySelectorAll('.mkpi-click').forEach(c=>c.classList.toggle('mkpi-on',c.dataset.mf===mfCardFilter));
-  const rotulos={atrasado:'atrasados',corretiva:'em corretiva',preventiva:'em preventiva',severa:'em estado severo',conferencia:'pendentes de conferencia'};
+  const rotulos={atrasado:'atrasados',corretiva:'em corretiva',preventiva:'em preventiva',severa:'em estado severo',conferencia:'pendentes de conferencia',libhoje:'com liberacao hoje'};
   const mfa=el('mf-active');
   if(mfa)mfa.innerHTML=mfCardFilter?('<span style="color:var(--blue2)">Filtrando: <b>'+(rotulos[mfCardFilter]||mfCardFilter)+'</b></span> · <button id="mf-clear-card" style="background:none;border:none;color:var(--txt3);cursor:pointer;text-decoration:underline;font-size:12px">limpar</button>'):'';
   const bases=basesData(fUF),wrap=document.getElementById('mcards');
