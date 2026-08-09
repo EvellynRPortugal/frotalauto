@@ -81,14 +81,21 @@ body.somente-consulta .vle[data-p],
 body.somente-consulta .cf-bar,
 body.somente-consulta .c-acts,
 body.somente-consulta .c-add-box,
-body.somente-consulta #vm-save{display:none !important}
+body.somente-consulta #vm-save,
+body.somente-consulta #v-add-btn,
+body.somente-consulta #pv-gerenciar,
+body.somente-consulta #vd-actions,
+body.somente-consulta #btn-xls{display:none !important}
 body.somente-consulta .bc-mh .r{opacity:.5}
 /* VISAO DE CONSULTA */
 #view-consulta{display:none}
+/* esconde a barra de abas normal e mostra a de consulta */
 body.somente-consulta .tabs{display:none}
-body.somente-consulta .view{display:none !important}
-body.somente-consulta #view-consulta{display:block}
-body.somente-consulta #btn-xls{display:none}
+body.somente-consulta #cons-tabs{display:flex!important}
+/* no modo consulta, so as views permitidas podem aparecer (controladas por JS via .active) */
+body.somente-consulta #view-dash,
+body.somente-consulta #view-manut{display:none!important}
+#cons-tabs{display:none}
 .cons-wrap{display:grid;grid-template-columns:1fr 480px;gap:18px}
 @media(max-width:1100px){.cons-wrap{grid-template-columns:1fr}}
 .cons-panel{background:var(--surf);border:1px solid var(--line);border-radius:var(--r2);padding:0;display:flex;flex-direction:column;max-height:760px;overflow:hidden}
@@ -533,6 +540,13 @@ body.somente-consulta #btn-xls{display:none}
   <button class="tab" data-v="manut"><i class="ti ti-tool"></i> Manutencao <span class="pill" id="tab-man">0</span></button>
   <button class="tab" data-v="veic"><i class="ti ti-truck"></i> Veiculos</button>
   <button class="tab" data-v="prev"><i class="ti ti-clipboard-check"></i> Preventivas</button>
+</div>
+
+<!-- barra de abas do modo CONSULTA -->
+<div class="tabs" id="cons-tabs">
+  <button class="tab active" data-cv="mapa"><i class="ti ti-map-2"></i> Mapa</button>
+  <button class="tab" data-cv="veic"><i class="ti ti-truck"></i> Veiculos</button>
+  <button class="tab" data-cv="prev"><i class="ti ti-clipboard-check"></i> Preventivas</button>
 </div>
 
 <!-- VISAO DE CONSULTA (somente para usuarios de consulta) -->
@@ -1155,12 +1169,29 @@ async function aposLogin(){
   await carregarDados();
 }
 function aplicarPermissoes(){
-  // se for consulta, esconde tudo que edita e mostra a visao de consulta
+  // se for consulta, esconde tudo que edita e ativa o menu de consulta
   if(USER_PAPEL!=='editor'){
     document.body.classList.add('somente-consulta');
-    setTimeout(refreshCons,100);
+    setTimeout(()=>consNav('mapa'),100);
   }else{
     document.body.classList.remove('somente-consulta');
+  }
+}
+// navegacao do modo consulta entre Mapa / Veiculos / Preventivas
+function consNav(cv){
+  document.querySelectorAll('#cons-tabs .tab').forEach(t=>t.classList.toggle('active',t.dataset.cv===cv));
+  // esconde todas as views + a de consulta
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  const vc=document.getElementById('view-consulta');
+  if(cv==='mapa'){
+    vc.style.display='block';
+    refreshCons();
+  }else{
+    vc.style.display='none';
+    const view=document.getElementById('view-'+cv);
+    if(view){view.classList.add('active');view.style.display='';}
+    if(cv==='veic')renderVeic();
+    if(cv==='prev')renderPrev();
   }
 }
 async function carregarDados(){
@@ -1183,6 +1214,7 @@ async function carregarDados(){
 document.getElementById('lg-btn').onclick=fazerLogin;
 document.getElementById('btn-sair').onclick=sair;
 document.getElementById('cons-search').oninput=renderCons;
+document.querySelectorAll('#cons-tabs .tab').forEach(t=>t.onclick=()=>consNav(t.dataset.cv));
 // preventivas
 document.getElementById('pv-import-btn').onclick=()=>document.getElementById('pv-file').click();
 document.getElementById('pv-file').onchange=e=>{if(e.target.files[0]){importarPreventivas(e.target.files[0]);e.target.value='';}};
@@ -2071,7 +2103,7 @@ function maybeAutoConf(){
   if(ultima!==hoje && manAll().length>0){localStorage.setItem('lauto_conf_dia',hoje);setTimeout(openConf,1200);}
 }
 
-function refreshAll(){updHeader();updateConfBadge();if(document.body.classList.contains('somente-consulta')){refreshCons();return;}const av=id=>document.getElementById('view-'+id).classList.contains('active');if(av('dash'))renderDash();if(av('mapa')){drawMap();renderSP();}if(av('manut'))renderManut();if(av('veic'))renderVeic();if(document.getElementById('cmodal').classList.contains('open')&&!document.querySelector('.c-edit-box'))renderConf();}
+function refreshAll(){updHeader();updateConfBadge();if(document.body.classList.contains('somente-consulta')){const at=document.querySelector('#cons-tabs .tab.active');const cv=at?at.dataset.cv:'mapa';if(cv==='mapa')refreshCons();else if(cv==='veic')renderVeic();else if(cv==='prev')renderPrev();return;}const av=id=>document.getElementById('view-'+id).classList.contains('active');if(av('dash'))renderDash();if(av('mapa')){drawMap();renderSP();}if(av('manut'))renderManut();if(av('veic'))renderVeic();if(document.getElementById('cmodal').classList.contains('open')&&!document.querySelector('.c-edit-box'))renderConf();}
 updHeader();renderDash();
 loadFromSupabase();
 
