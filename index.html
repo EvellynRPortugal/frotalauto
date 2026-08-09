@@ -397,6 +397,12 @@ body.somente-consulta #view-manut{display:none!important}
 .vm-hint{font-size:12px;color:var(--txt3);font-weight:400}
 .vm-body select{width:100%;padding:11px 12px;border:1px solid var(--line);background:var(--bg2);color:var(--txt);border-radius:9px;font-size:14px}
 .vm-prev{margin-top:8px;font-size:13px;color:var(--txt3)}
+.mkpi-click{cursor:pointer;transition:.18s}
+.mkpi-click:hover{transform:translateY(-2px);border-color:var(--blue2)}
+.mkpi-click .mkpi-ic{font-size:12px;opacity:.35;margin-left:3px;vertical-align:middle}
+.mkpi-click:hover .mkpi-ic{opacity:.7}
+.mkpi-on{border-color:var(--blue2)!important;box-shadow:0 0 0 2px rgba(196,204,214,.25),var(--shadow-sm)!important}
+.mkpi-on .mkpi-ic{opacity:.9;color:var(--blue2)}
 .vm-save{width:100%;padding:13px;background:var(--gold);color:#0a1628;border:none;border-radius:10px;font-weight:800;font-size:15px;cursor:pointer}
 .vadd-btn{background:linear-gradient(135deg,var(--green),#3fb98a);color:#08201a;border:none;padding:10px 16px;border-radius:10px;font-weight:700;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
 .vfilters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
@@ -655,16 +661,16 @@ body.somente-consulta #view-manut{display:none!important}
     <div class="kpi b-blue"><div class="lbl">Frota total</div><div class="val" id="mm-tot">0</div></div>
     <div class="kpi b-amber"><div class="lbl">Em manutencao</div><div class="val" id="mm-man">0</div></div>
     <div class="kpi b-green"><div class="lbl">Operacionais</div><div class="val" id="mm-op">0</div></div>
-    <div class="kpi b-red"><div class="lbl">Atrasados</div><div class="val" id="mm-late">0</div></div>
+    <div class="kpi b-red mkpi-click" data-mf="atrasado"><div class="lbl">Atrasados <i class="ti ti-click mkpi-ic"></i></div><div class="val" id="mm-late">0</div></div>
   </div>
   <div class="kpi-grid" style="margin-top:-8px">
-    <div class="kpi b-blue"><div class="lbl"><i class="ti ti-tool"></i> Corretiva</div><div class="val" id="mm-corr">0</div><div class="delta flat">reparo de falha</div></div>
-    <div class="kpi b-green"><div class="lbl"><i class="ti ti-calendar-check"></i> Preventiva</div><div class="val" id="mm-prevc">0</div><div class="delta flat">manutencao programada</div></div>
-    <div class="kpi b-red"><div class="lbl"><i class="ti ti-alert-triangle"></i> Severa</div><div class="val" id="mm-sevc">0</div><div class="delta flat">parada critica</div></div>
-    <div class="kpi b-amber"><div class="lbl"><i class="ti ti-tags"></i> Corretiva + Preventiva</div><div class="val" id="mm-ambos">0</div><div class="delta flat">nas duas ao mesmo tempo</div></div>
+    <div class="kpi b-blue mkpi-click" data-mf="corretiva"><div class="lbl"><i class="ti ti-tool"></i> Corretiva <i class="ti ti-click mkpi-ic"></i></div><div class="val" id="mm-corr">0</div><div class="delta flat">reparo de falha</div></div>
+    <div class="kpi b-green mkpi-click" data-mf="preventiva"><div class="lbl"><i class="ti ti-calendar-check"></i> Preventiva <i class="ti ti-click mkpi-ic"></i></div><div class="val" id="mm-prevc">0</div><div class="delta flat">manutencao programada</div></div>
+    <div class="kpi b-red mkpi-click" data-mf="severa"><div class="lbl"><i class="ti ti-alert-triangle"></i> Severa <i class="ti ti-click mkpi-ic"></i></div><div class="val" id="mm-sevc">0</div><div class="delta flat">parada critica</div></div>
+    <div class="kpi b-amber mkpi-click" data-mf="conferencia"><div class="lbl"><i class="ti ti-clipboard-list"></i> Falta conferencia <i class="ti ti-click mkpi-ic"></i></div><div class="val" id="mm-conf">0</div><div class="delta flat">pendentes de conferir</div></div>
   </div>
   <div class="mfilter">
-    <div style="font-size:13px;color:var(--txt3)">Sinalize placas na oficina. Use "editar" no card para registrar motivo, previsao e dias parados.</div>
+    <div id="mf-active" style="font-size:13px;color:var(--txt3)"></div>
     <select id="mf-uf"><option value="">Todos os estados</option></select>
   </div>
   <div class="cards3" id="mcards"></div>
@@ -1577,6 +1583,19 @@ function projMini(v){const p=v.projeto||'';if(!p||p==='-')return '';const c=proj
 function projBadge(v){const p=v.projeto||'';if(!p||p==='-')return '';const c=projColor(p);return '<span class="proj-badge" style="background:'+c+'22;color:'+c+';border:1px solid '+c+'55">'+p+'</span>';}
 function fillMF(){const s=document.getElementById('mf-uf');if(s.options.length>1)return;Object.keys(DATA).filter(u=>DATA[u].total>0).sort().forEach(u=>{const o=document.createElement('option');o.value=u;o.textContent=u+' ('+DATA[u].total+')';s.appendChild(o);});s.onchange=renderManut;}
 const CARDF={}; // filtros ativos de cada card: {BASE:{proj,perfil,tipo}}
+let mfCardFilter=''; // filtro por card KPI: atrasado/corretiva/preventiva/severa/conferencia
+function confHoje(v){return v.conferido_em===today();}
+// um veiculo passa no filtro do card ativo?
+function passaCardFilter(v){
+  if(!mfCardFilter)return true;
+  const hasTipo=(t)=>(v.tipos_manut||'').split(',').includes(t);
+  if(mfCardFilter==='atrasado')return isLate(v);
+  if(mfCardFilter==='severa')return v.status==='SEVERA';
+  if(mfCardFilter==='corretiva')return v.status!=='SEVERA'&&hasTipo('corretiva')&&!hasTipo('preventiva');
+  if(mfCardFilter==='preventiva')return v.status!=='SEVERA'&&hasTipo('preventiva');
+  if(mfCardFilter==='conferencia')return v.status!=='OK'&&!confHoje(v);
+  return true;
+}
 function renderManut(){
   updHeader();fillMF();
   const fUF=document.getElementById('mf-uf').value;
@@ -1588,19 +1607,26 @@ function renderManut(){
   document.getElementById('mm-late').textContent=late.length;
   // KPIs por tipo de manutencao
   const hasTipo=(v,t)=>(v.tipos_manut||'').split(',').includes(t);
-  const corr=man.filter(x=>x.v.status!=='SEVERA'&&hasTipo(x.v,'corretiva'));
+  // corretiva = corretiva-pura (nao conta se tambem for preventiva); preventiva = preventiva OU ambos
+  const corr=man.filter(x=>x.v.status!=='SEVERA'&&hasTipo(x.v,'corretiva')&&!hasTipo(x.v,'preventiva'));
   const prevc=man.filter(x=>x.v.status!=='SEVERA'&&hasTipo(x.v,'preventiva'));
   const sevc=man.filter(x=>x.v.status==='SEVERA');
-  const ambos=man.filter(x=>x.v.status!=='SEVERA'&&hasTipo(x.v,'corretiva')&&hasTipo(x.v,'preventiva'));
+  // falta conferencia = pendentes na janela de conferencia (nao conferidos hoje)
+  const conf=scope.filter(x=>x.v.status!=='OK'&&!confHoje(x.v));
   const el=id=>document.getElementById(id);
   if(el('mm-corr'))el('mm-corr').textContent=corr.length;
   if(el('mm-prevc'))el('mm-prevc').textContent=prevc.length;
   if(el('mm-sevc'))el('mm-sevc').textContent=sevc.length;
-  if(el('mm-ambos'))el('mm-ambos').textContent=ambos.length;
+  if(el('mm-conf'))el('mm-conf').textContent=conf.length;
+  // destaque do card ativo + mensagem de filtro
+  document.querySelectorAll('.mkpi-click').forEach(c=>c.classList.toggle('mkpi-on',c.dataset.mf===mfCardFilter));
+  const rotulos={atrasado:'atrasados',corretiva:'em corretiva',preventiva:'em preventiva',severa:'em estado severo',conferencia:'pendentes de conferencia'};
+  const mfa=el('mf-active');
+  if(mfa)mfa.innerHTML=mfCardFilter?('<span style="color:var(--blue2)">Filtrando: <b>'+(rotulos[mfCardFilter]||mfCardFilter)+'</b></span> · <button id="mf-clear-card" style="background:none;border:none;color:var(--txt3);cursor:pointer;text-decoration:underline;font-size:12px">limpar</button>'):'';
   const bases=basesData(fUF),wrap=document.getElementById('mcards');
   if(!bases.length){wrap.innerHTML='<div class="empty" style="grid-column:1/-1">Nenhuma base.</div>';return;}
   wrap.innerHTML=bases.map(b=>{
-    const tot=b.vs.length,inM=b.vs.filter(v=>v.status!=='OK'),op=tot-inM.length,pct=tot?Math.round(op/tot*100):0;
+    const tot=b.vs.length,inM=b.vs.filter(v=>v.status!=='OK'&&passaCardFilter(v)),op=tot-b.vs.filter(v=>v.status!=='OK').length,pct=tot?Math.round(op/tot*100):0;
     const pc=pct>=80?PAL.green:(pct>=50?PAL.amber:PAL.red),has=inM.length>0;
     const key=b.base;
     const f=CARDF[key]||(CARDF[key]={proj:[],perfil:[],tipo:[]});
@@ -1657,6 +1683,8 @@ function renderManut(){
       ml=Object.keys(byU).sort().map(u=>'<div class="sub-u"><div class="sub-u-h"><span class="sub-u-n">'+u+'</span><span class="sub-u-c">'+byU[u].length+'</span></div>'+byU[u].sort((a,c)=>(c.status==='SEVERA')-(a.status==='SEVERA')).map(carItem).join('')+'</div>').join('');
     }
     else{ml=shown.sort((a,c)=>(c.status==='SEVERA')-(a.status==='SEVERA')).map(carItem).join('');}
+    // quando ha filtro de card ativo, esconde bases sem veiculos naquele filtro
+    if(mfCardFilter&&inM.length===0)return '';
     const cardTitle=b.transf?'TRANSFERENCIA':(b.base+' &mdash; '+b.cidade);
     const cardSig=b.transf?'<span class="sig" style="background:rgba(167,139,250,.25);color:#a78bfa">TRANSF</span>':'<span class="sig">'+b.uf+'</span>';
     const cnt=filtrando?(shown.length+' de '+inM.length):(inM.length+' veic.');
@@ -1894,6 +1922,9 @@ document.getElementById('vq').oninput=renderVeic;
 document.getElementById('vf-clear').onclick=()=>{['vf-base','vf-proj','vf-resp','vf-cavalo','vf-class'].forEach(id=>document.getElementById(id).value='');document.getElementById('vf-status').value='ativos';document.getElementById('vq').value='';renderVeic();};
 document.getElementById('v-add-btn').onclick=openAddVeic;
 document.getElementById('vf-toggle').onclick=()=>{const f=document.getElementById('vfilters');const aberto=f.style.display!=='none';f.style.display=aberto?'none':'flex';document.getElementById('vf-chev').className='ti ti-chevron-'+(aberto?'down':'up');};
+// cards KPI clicaveis da aba manutencao
+document.querySelectorAll('.mkpi-click').forEach(c=>c.onclick=()=>{const mf=c.dataset.mf;mfCardFilter=(mfCardFilter===mf)?'':mf;renderManut();});
+document.addEventListener('click',e=>{if(e.target&&e.target.id==='mf-clear-card'){mfCardFilter='';renderManut();}});
 document.getElementById('vd-close').onclick=()=>document.getElementById('vdmodal').classList.remove('open');
 document.getElementById('vdmodal').onclick=e=>{if(e.target.id==='vdmodal')document.getElementById('vdmodal').classList.remove('open');};
 let vmPlaca=null;
