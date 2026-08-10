@@ -127,6 +127,44 @@ body.somente-consulta #view-manut{display:none!important}
 .pvem-tabs{display:flex;gap:4px;background:var(--bg2);border:1px solid var(--line);border-radius:10px;padding:4px;margin-bottom:12px}
 .pv-acoes-wrap{position:relative}
 .hdr-menu-wrap{position:relative;display:inline-block}
+.avatar-wrap{position:relative;display:inline-block}
+.av-sec-t{font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--txt3);margin:16px 0 8px}
+.av-icons{display:grid;grid-template-columns:repeat(6,1fr);gap:7px}
+.av-ic{aspect-ratio:1;background:var(--bg2);border:1px solid var(--line);border-radius:9px;color:var(--txt2);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.av-ic:hover{border-color:var(--blue2)}
+.av-ic.on{border-color:var(--gold);background:rgba(212,184,118,.15);color:var(--gold)}
+.av-cores{display:flex;gap:9px;flex-wrap:wrap}
+.av-cor{width:32px;height:32px;border-radius:50%;border:2px solid transparent;cursor:pointer}
+.av-cor.on{border-color:var(--txt);box-shadow:0 0 0 2px var(--surf2),0 0 0 4px var(--txt)}
+.av-upload{flex:1;background:var(--surf);border:1px solid var(--line);color:var(--txt);padding:10px;border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:7px}
+.av-upload:hover{border-color:var(--blue2)}
+.av-remove{background:none;border:1px solid var(--line);color:var(--txt3);padding:10px 14px;border-radius:9px;font-size:12.5px;cursor:pointer}
+.av-remove:hover{color:var(--red);border-color:var(--red)}
+.av-salvar{width:100%;margin-top:18px;padding:12px;background:var(--gold);color:#16191d;border:none;border-radius:10px;font-weight:800;font-size:14px;cursor:pointer}
+.av-salvar:hover{filter:brightness(1.05)}
+.avatar-btn{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--blue2));border:2px solid var(--line);color:#16191d;font-size:17px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;box-shadow:var(--shadow-sm)}
+.avatar-btn:hover{filter:brightness(1.08)}
+.avatar-menu{position:absolute;top:calc(100% + 8px);right:0;background:var(--surf2);border:1px solid var(--line);border-radius:13px;box-shadow:0 16px 40px rgba(0,0,0,.5);padding:8px;min-width:230px;z-index:100;display:none;flex-direction:column;gap:1px}
+.avatar-menu.open{display:flex}
+.avm-user{display:flex;align-items:center;gap:11px;padding:8px 10px 12px}
+.avm-avatar{width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--blue2));display:flex;align-items:center;justify-content:center;color:#16191d;font-size:18px;flex-shrink:0}
+.avm-nome{font-size:14px;font-weight:700;color:var(--txt)}
+.avm-cargo{font-size:11.5px;color:var(--txt3)}
+.avm-sec{font-size:10.5px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;color:var(--txt3);padding:10px 10px 5px}
+.avm-item{background:none;border:none;color:var(--txt);text-align:left;padding:9px 11px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;display:flex;align-items:center;gap:10px}
+.avm-item:hover{background:var(--surf)}
+.avm-item i{font-size:15px;opacity:.8;width:17px;text-align:center}
+.avm-div{height:1px;background:var(--line);margin:7px 4px}
+.avm-sair{color:var(--red)}
+.avm-sair:hover{background:rgba(224,100,95,.12)}
+/* modo consulta: esconde relatorios e acoes de preventiva do menu, deixa so Sair */
+body.somente-consulta .avm-sec,
+body.somente-consulta .avm-item[data-am=rel-manut],
+body.somente-consulta .avm-item[data-am=rel-veic],
+body.somente-consulta .avm-item[data-am=rel-prev],
+body.somente-consulta .avm-item[data-am=prev-ger],
+body.somente-consulta .avm-item[data-am=prev-env],
+body.somente-consulta .avm-div{display:none!important}
 .aba-xls{background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.45);color:var(--green);padding:9px 14px;border-radius:10px;font-weight:600;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
 .aba-xls:hover{background:rgba(16,185,129,.18)}
 .hdr-menu{position:absolute;top:calc(100% + 6px);right:0;background:var(--surf2);border:1px solid var(--line);border-radius:11px;box-shadow:0 12px 32px rgba(0,0,0,.4);padding:6px;min-width:210px;z-index:70;display:none;flex-direction:column;gap:2px}
@@ -561,9 +599,24 @@ body.somente-consulta #view-manut{display:none!important}
     <span class="hdr-pill"><span class="dot"></span><b id="h-ativos">572</b> ativos</span>
     <span class="hdr-pill"><b id="h-man">29</b> em manutencao</span>
     <span class="hdr-pill"><b id="h-disp">95%</b> disponibilidade</span>
-    <span class="hdr-pill" id="sync-status"><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#6b7f9e;margin-right:6px"></span>Conectando...</span>
+    <span class="hdr-pill" id="sync-status" style="display:none"></span>
     <button class="hdr-pill" id="btn-conf" style="cursor:pointer;border:1px solid var(--blue);background:rgba(59,130,246,.12);color:var(--blue2);font-weight:600"><i class="ti ti-clipboard-check" style="margin-right:5px"></i>Conferencia <span id="conf-badge" style="display:none;background:var(--amber);color:#0a1628;border-radius:9px;padding:0 7px;font-size:11px;margin-left:4px"></span></button>
-    <button class="hdr-pill" id="btn-sair" title="Sair" style="cursor:pointer;padding:6px 11px;color:var(--txt3)"><i class="ti ti-logout"></i></button>
+    <div class="avatar-wrap">
+      <button class="avatar-btn" id="avatar-btn" title="Menu"><i class="ti ti-user"></i></button>
+      <div class="avatar-menu" id="avatar-menu">
+        <div class="avm-user"><div class="avm-avatar"><i class="ti ti-user"></i></div><div><div class="avm-nome">Evellyn</div><div class="avm-cargo">Analista de Frota</div></div></div>
+        <div class="avm-sec">Relatorios</div>
+        <button class="avm-item" data-am="rel-veic"><i class="ti ti-truck"></i> Veiculos</button>
+        <button class="avm-item" data-am="rel-manut"><i class="ti ti-tool"></i> Manutencao</button>
+        <button class="avm-item" data-am="rel-prev"><i class="ti ti-clipboard-check"></i> Preventivas</button>
+        <div class="avm-sec">Preventivas</div>
+        <button class="avm-item" data-am="prev-ger"><i class="ti ti-settings"></i> Gerenciar</button>
+        <button class="avm-item" data-am="prev-env"><i class="ti ti-mail"></i> Enviar emails</button>
+        <div class="avm-div"></div>
+        <button class="avm-item" data-am="avatar"><i class="ti ti-photo"></i> Personalizar avatar</button>
+        <button class="avm-item avm-sair" data-am="sair"><i class="ti ti-logout"></i> Sair</button>
+      </div>
+    </div>
   </div>
 </header>
 
@@ -696,10 +749,7 @@ body.somente-consulta #view-manut{display:none!important}
   </div>
   <div class="mfilter">
     <div id="mf-active" style="font-size:13px;color:var(--txt3)"></div>
-    <div style="display:flex;gap:8px;align-items:center">
-      <button class="aba-xls" id="btn-xls"><i class="ti ti-file-spreadsheet"></i> Baixar Excel</button>
-      <select id="mf-uf"><option value="">Todos os estados</option></select>
-    </div>
+    <select id="mf-uf"><option value="">Todos os estados</option></select>
   </div>
   <div class="cards3" id="mcards"></div>
 </div>
@@ -712,7 +762,6 @@ body.somente-consulta #view-manut{display:none!important}
       <div style="display:flex;gap:8px;align-items:center">
         <button class="vf-toggle" id="vf-toggle" title="Filtros"><i class="ti ti-filter"></i> Filtros <i class="ti ti-chevron-down" id="vf-chev"></i></button>
         <input id="vq" class="vs" placeholder="Buscar placa, chassi, base, projeto..."/>
-        <button class="aba-xls" id="btn-xls-veic"><i class="ti ti-file-spreadsheet"></i> Excel</button>
         <button class="vadd-btn" id="v-add-btn"><i class="ti ti-plus"></i> Adicionar</button>
       </div>
     </div>
@@ -736,14 +785,6 @@ body.somente-consulta #view-manut{display:none!important}
 <div class="view" id="view-prev">
   <div class="pv-head">
     <div class="pv-base-info" id="pv-base-info"></div>
-    <div class="pv-acoes-wrap">
-      <button class="pv-acoes-btn" id="pv-acoes" title="Acoes"><i class="ti ti-dots-vertical"></i></button>
-      <div class="pv-acoes-menu" id="pv-acoes-menu">
-        <button data-ac="gerenciar"><i class="ti ti-settings"></i> Gerenciar</button>
-        <button data-ac="enviar"><i class="ti ti-mail"></i> Enviar emails</button>
-        <button data-ac="excel"><i class="ti ti-file-spreadsheet"></i> Baixar Excel</button>
-      </div>
-    </div>
   </div>
   <div class="pv-views">
     <button class="pv-vtab active" data-pv="geral">Geral</button>
@@ -754,6 +795,23 @@ body.somente-consulta #view-manut{display:none!important}
 </div>
 
 <!-- modal gerenciar preventivas -->
+<div class="mbg" id="avmodal"><div class="modal3" style="max-width:440px">
+  <div class="m3-head"><div><h3><i class="ti ti-photo" style="margin-right:6px"></i>Personalizar avatar</h3></div><button class="m3-x" id="av-close">&times;</button></div>
+  <div style="padding:4px 2px">
+    <div style="text-align:center;margin-bottom:18px"><div id="av-preview" style="width:72px;height:72px;border-radius:50%;margin:0 auto;display:flex;align-items:center;justify-content:center;font-size:30px;overflow:hidden"></div></div>
+    <div class="av-sec-t">Escolha um icone</div>
+    <div class="av-icons" id="av-icons"></div>
+    <div class="av-sec-t">Cor de fundo</div>
+    <div class="av-cores" id="av-cores"></div>
+    <div class="av-sec-t">Ou envie uma foto</div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <label class="av-upload"><i class="ti ti-upload"></i> Escolher foto<input type="file" id="av-file" accept="image/*" style="display:none"></label>
+      <button class="av-remove" id="av-remove-foto">Remover foto</button>
+    </div>
+    <button class="av-salvar" id="av-salvar">Salvar</button>
+  </div>
+</div></div>
+
 <div class="mbg" id="pvmodal"><div class="modal3" style="max-width:560px">
   <div class="m3-head"><div><h3>Gerenciar preventivas</h3><span>Importe relatorios e defina a base do mes</span></div><button class="m3-x" id="pv-close">&times;</button></div>
   <div class="vm-body">
@@ -1392,6 +1450,7 @@ async function aposLogin(){
   }catch(e){USER_PAPEL='consulta';}
   document.getElementById('login-screen').style.display='none';
   aplicarPermissoes();
+  aplicarAvatar();
   await carregarDados();
 }
 function aplicarPermissoes(){
@@ -1438,21 +1497,67 @@ async function carregarDados(){
 }
 // handlers do login
 document.getElementById('lg-btn').onclick=fazerLogin;
-document.getElementById('btn-sair').onclick=sair;
+// ==== AVATAR PERSONALIZAVEL ====
+const AV_ICONES=['ti-user','ti-user-circle','ti-mood-smile','ti-star','ti-heart','ti-truck','ti-steering-wheel','ti-rocket','ti-crown','ti-cat','ti-flower','ti-bolt'];
+const AV_CORES=['#8b95a3','#d4b876','#5ec9a0','#e0a94a','#e0645f','#6ea8e0','#b07de0','#e07db4'];
+let AVATAR=JSON.parse(localStorage.getItem('avatar_pref')||'{"tipo":"icone","icone":"ti-user","cor":"#8b95a3"}');
+let avTmp=null;
+function aplicarAvatar(){
+  const btn=document.getElementById('avatar-btn');const avm=document.querySelector('.avm-avatar');if(!btn)return;
+  const set=(el)=>{
+    if(!el)return;
+    if(AVATAR.tipo==='foto'&&AVATAR.foto){el.style.background='none';el.innerHTML='<img src="'+AVATAR.foto+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">';}
+    else{el.style.background=AVATAR.cor||'#8b95a3';el.innerHTML='<i class="ti '+(AVATAR.icone||'ti-user')+'"></i>';}
+  };
+  set(btn);set(avm);
+}
+function openAvatarModal(){
+  avTmp=JSON.parse(JSON.stringify(AVATAR));
+  // icones
+  const gi=document.getElementById('av-icons');
+  gi.innerHTML=AV_ICONES.map(ic=>'<button class="av-ic'+(avTmp.tipo==='icone'&&avTmp.icone===ic?' on':'')+'" data-ic="'+ic+'"><i class="ti '+ic+'"></i></button>').join('');
+  gi.querySelectorAll('.av-ic').forEach(bt=>bt.onclick=()=>{avTmp.tipo='icone';avTmp.icone=bt.dataset.ic;delete avTmp.foto;refreshAvPrev();});
+  // cores
+  const gc=document.getElementById('av-cores');
+  gc.innerHTML=AV_CORES.map(c=>'<button class="av-cor'+(avTmp.cor===c?' on':'')+'" data-c="'+c+'" style="background:'+c+'"></button>').join('');
+  gc.querySelectorAll('.av-cor').forEach(bt=>bt.onclick=()=>{avTmp.cor=bt.dataset.c;refreshAvPrev();});
+  refreshAvPrev();
+  document.getElementById('avmodal').classList.add('open');
+}
+function refreshAvPrev(){
+  const el=document.getElementById('av-preview');if(!el)return;
+  if(avTmp.tipo==='foto'&&avTmp.foto){el.style.background='none';el.innerHTML='<img src="'+avTmp.foto+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">';}
+  else{el.style.background=avTmp.cor||'#8b95a3';el.style.color='#16191d';el.innerHTML='<i class="ti '+(avTmp.icone||'ti-user')+'"></i>';}
+  document.querySelectorAll('.av-ic').forEach(b=>b.classList.toggle('on',avTmp.tipo==='icone'&&avTmp.icone===b.dataset.ic));
+  document.querySelectorAll('.av-cor').forEach(b=>b.classList.toggle('on',avTmp.cor===b.dataset.c));
+}
+document.getElementById('avatar-btn').onclick=e=>{e.stopPropagation();document.getElementById('avatar-menu').classList.toggle('open');};
+document.addEventListener('click',()=>document.getElementById('avatar-menu')?.classList.remove('open'));
+document.querySelectorAll('#avatar-menu .avm-item').forEach(b=>b.onclick=()=>{
+  const am=b.dataset.am;document.getElementById('avatar-menu').classList.remove('open');
+  if(am==='rel-veic')baixarExcelVeiculos();
+  if(am==='rel-manut')exportarXLS();
+  if(am==='rel-prev')baixarExcelPreventivas();
+  if(am==='prev-ger'){document.getElementById('pvmodal').classList.add('open');document.getElementById('pv-alert').style.display='none';renderPrev();renderEmailCad();}
+  if(am==='prev-env')enviarEmailsPreventivas();
+  if(am==='avatar')openAvatarModal();
+  if(am==='sair')sair();
+});
+document.getElementById('av-close').onclick=()=>document.getElementById('avmodal').classList.remove('open');
+document.getElementById('avmodal').onclick=e=>{if(e.target.id==='avmodal')document.getElementById('avmodal').classList.remove('open');};
+document.getElementById('av-file').onchange=e=>{
+  const f=e.target.files[0];if(!f)return;
+  if(f.size>2*1024*1024){alert('Foto muito grande (max 2MB). Escolha uma menor.');return;}
+  const rd=new FileReader();rd.onload=()=>{avTmp.tipo='foto';avTmp.foto=rd.result;refreshAvPrev();};rd.readAsDataURL(f);
+};
+document.getElementById('av-remove-foto').onclick=()=>{avTmp.tipo='icone';delete avTmp.foto;refreshAvPrev();};
+document.getElementById('av-salvar').onclick=()=>{AVATAR=avTmp;localStorage.setItem('avatar_pref',JSON.stringify(AVATAR));aplicarAvatar();document.getElementById('avmodal').classList.remove('open');};
 document.getElementById('cons-search').oninput=renderCons;
 document.querySelectorAll('#cons-tabs .tab').forEach(t=>t.onclick=()=>consNav(t.dataset.cv));
 // preventivas
 document.getElementById('pv-import-btn').onclick=()=>document.getElementById('pv-file').click();
 document.getElementById('pv-file').onchange=e=>{if(e.target.files[0]){importarPreventivas(e.target.files[0]);e.target.value='';}};
 document.querySelectorAll('.pv-vtab').forEach(b=>b.onclick=()=>{document.querySelectorAll('.pv-vtab').forEach(x=>x.classList.remove('active'));b.classList.add('active');PREV_VIEW=b.dataset.pv;renderPrev();});
-document.getElementById('pv-acoes').onclick=e=>{e.stopPropagation();document.getElementById('pv-acoes-menu').classList.toggle('open');};
-document.addEventListener('click',()=>document.getElementById('pv-acoes-menu')?.classList.remove('open'));
-document.querySelectorAll('#pv-acoes-menu button').forEach(b=>b.onclick=()=>{
-  const ac=b.dataset.ac;document.getElementById('pv-acoes-menu').classList.remove('open');
-  if(ac==='gerenciar'){document.getElementById('pvmodal').classList.add('open');document.getElementById('pv-alert').style.display='none';renderPrev();renderEmailCad();}
-  if(ac==='enviar')enviarEmailsPreventivas();
-  if(ac==='excel')baixarExcelPreventivas();
-});
 document.querySelectorAll('.pvem-tab').forEach(t=>t.onclick=()=>{document.querySelectorAll('.pvem-tab').forEach(x=>x.classList.remove('active'));t.classList.add('active');PVEM_TAB=t.dataset.et;renderEmailCad();});
 document.getElementById('pv-close').onclick=()=>document.getElementById('pvmodal').classList.remove('open');
 document.getElementById('pvmodal').onclick=e=>{if(e.target.id==='pvmodal')document.getElementById('pvmodal').classList.remove('open');};
@@ -1475,15 +1580,7 @@ function subscribeRealtime(){
 }
 function setStatus(kind,txt){
   const el=document.getElementById('sync-status');if(!el)return;
-  const c=kind==='online'?'#10b981':(kind==='offline'?'#f59e0b':'#6b7f9e');
-  // conectado = so a bolinha (sem texto); offline/conectando = bolinha + texto
-  if(kind==='online'){
-    el.innerHTML='<span title="Conectado" style="display:inline-block;width:9px;height:9px;border-radius:50%;background:'+c+';box-shadow:0 0 6px '+c+'"></span>';
-    el.style.padding='6px 10px';
-  }else{
-    el.innerHTML='<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:'+c+';margin-right:6px"></span>'+txt;
-    el.style.padding='';
-  }
+  el.style.display='none'; // status de conexao nao aparece mais no header
 }
 
 /* ============ HISTORICO DE MANUTENCOES ============ */
@@ -2371,8 +2468,6 @@ function exportarXLS(){
   a.download='veiculos_manutencao_'+dt+'.xls';
   document.body.appendChild(a);a.click();document.body.removeChild(a);
 }
-document.getElementById('btn-xls').onclick=exportarXLS;
-document.getElementById('btn-xls-veic').onclick=baixarExcelVeiculos;
 document.getElementById('btn-conf').onclick=openConf;
 document.getElementById('c-close').onclick=()=>document.getElementById('cmodal').classList.remove('open');
 document.getElementById('cmodal').onclick=e=>{if(e.target.id==='cmodal')document.getElementById('cmodal').classList.remove('open');};
