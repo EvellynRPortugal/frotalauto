@@ -961,6 +961,15 @@ function responsavelDaPlaca(placa){
   }}
   return '';
 }
+// verifica se uma placa esta INATIVA (desativada) no painel, com conversao antiga<->mercosul
+function placaInativa(placa){
+  placa=(placa||'').trim().toUpperCase().replace(/[^A-Z0-9]/g,'');
+  const alt=placaConv(placa);
+  return INATIVOS.some(v=>{
+    const vp=(v.placa||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+    return vp===placa||(alt&&vp===alt);
+  });
+}
 function statusCat(st){
   st=(st||'').toLowerCase();
   if(st.includes('vencid'))return 'vencida';
@@ -1081,6 +1090,7 @@ function preventivasResumo(view){
   const meta={}; // chave -> {placas:Set, alerta, vencida}
   const baseStatus={}; // "chave|placa" -> status na foto base
   baseLin.forEach(l=>{
+    if(placaInativa(l.placa))return; // veiculo desativado: fora da preventiva
     const cat=statusCat(l.status);
     if(cat==='alerta'||cat==='vencida'){
       const u=chaveDe(l);
