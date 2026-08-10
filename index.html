@@ -1066,9 +1066,12 @@ async function excluirImport(id){
 // filtra linhas de um import por visao
 function filtraVisao(linhas,view){
   linhas=linhas.filter(l=>l.achado);
-  if(view==='coleta')return linhas.filter(l=>(l.tipo_rota||'').toUpperCase().includes('COLETA')||(l.tipo_rota||'').toUpperCase().includes('ENTREGA'));
-  if(view==='trans')return linhas.filter(l=>(l.tipo_rota||'').toUpperCase().includes('TRANSF'));
-  return linhas; // geral
+  const ehColeta=l=>{const t=(l.tipo_rota||'').toUpperCase();return t.includes('COLETA')||t.includes('ENTREGA');};
+  const ehTransf=l=>(l.tipo_rota||'').toUpperCase().includes('TRANSF');
+  if(view==='coleta')return linhas.filter(ehColeta);
+  if(view==='trans')return linhas.filter(ehTransf);
+  // geral = so coleta/entrega + transferencia (ignora placas sem tipo de rota, pra bater com a soma)
+  return linhas.filter(l=>ehColeta(l)||ehTransf(l));
 }
 // cor do farol (gradiente vermelho->verde) por percentual 0..1
 function farolColor(p){
