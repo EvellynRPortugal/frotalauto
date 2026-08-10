@@ -1316,7 +1316,8 @@ function baixarExcelVeiculos(){
   if(typeof XLSX==='undefined'){alert('Biblioteca de Excel ainda carregando, tente de novo.');return;}
   const rows=[['Placa','Base','Cidade','Projeto','Responsavel','Tipo Cavalo','Status','Ativo']];
   const fonte=(typeof allVcomInativos==='function')?allVcomInativos():[];
-  (fonte.length?fonte:Object.values(DATA).flatMap(d=>d.veiculos)).forEach(v=>{
+  fonte.forEach(item=>{
+    const v=item.v||item; // allVcomInativos retorna {v,uf}
     rows.push([v.placa||'',v.base||'',v.cidade||'',v.projeto||'',v.responsavel||'',bdField(v,'Tipo Cavalo')||'',v.status||'',v.ativo===false?'Inativo':'Ativo']);
   });
   const ws=XLSX.utils.aoa_to_sheet(rows);
