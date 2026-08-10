@@ -128,6 +128,13 @@ body.somente-consulta #view-manut{display:none!important}
 .pv-acoes-wrap{position:relative}
 .hdr-menu-wrap{position:relative;display:inline-block}
 .avatar-wrap{position:relative;display:inline-block}
+.pv-search-wrap{position:relative;margin-bottom:14px;max-width:340px}
+.pv-search-wrap .ti-search{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--txt3);font-size:16px}
+.pv-search{width:100%;background:var(--bg2);border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:10px 34px;font-size:13px}
+.pv-search:focus{outline:none;border-color:var(--blue)}
+.pv-search-clear{position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--txt3);font-size:20px;cursor:pointer;line-height:1;padding:0 6px}
+.pv-search-clear:hover{color:var(--txt)}
+.pv-pli-hit{outline:2px solid var(--gold);outline-offset:1px;border-radius:7px;background:rgba(212,184,118,.12)!important}
 .av-sec-t{font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--txt3);margin:16px 0 8px}
 .av-icons{display:grid;grid-template-columns:repeat(6,1fr);gap:7px}
 .av-ic{aspect-ratio:1;background:var(--bg2);border:1px solid var(--line);border-radius:9px;color:var(--txt2);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center}
@@ -791,6 +798,11 @@ body.somente-consulta .avm-div{display:none!important}
     <button class="pv-vtab" data-pv="coleta">Coleta e Entrega</button>
     <button class="pv-vtab" data-pv="trans">Transferencia</button>
   </div>
+  <div class="pv-search-wrap">
+    <i class="ti ti-search"></i>
+    <input id="pv-search" class="pv-search" placeholder="Buscar placa especifica..."/>
+    <button id="pv-search-clear" class="pv-search-clear" style="display:none">&times;</button>
+  </div>
   <div id="pv-content"></div>
 </div>
 
@@ -1360,8 +1372,13 @@ function renderPrev(){
   const cont=document.getElementById('pv-content');
   if(!base){cont.innerHTML='<div class="pv-empty"><i class="ti ti-flag-3"></i><p>Marque uma importacao como <b>base do mes</b> para gerar o farol.</p></div>';bindPrevChips();return;}
   const resumo=preventivasResumo(PREV_VIEW);
-  const bases=Object.keys(resumo).sort();
-  if(!bases.length){cont.innerHTML='<div class="pv-empty"><p>Nenhuma pendencia nesta visao.</p></div>';bindPrevChips();return;}
+  const busca=(document.getElementById('pv-search')?.value||'').trim().toUpperCase().replace(/[^A-Z0-9]/g,'');
+  let bases=Object.keys(resumo).sort();
+  // se ha busca, filtra so grupos que tem a placa
+  if(busca){
+    bases=bases.filter(u=>(resumo[u].detalhe||[]).some(x=>(x.placa||'').toUpperCase().replace(/[^A-Z0-9]/g,'').includes(busca)));
+  }
+  if(!bases.length){cont.innerHTML='<div class="pv-empty"><p>'+(busca?'Nenhuma placa encontrada para "'+busca+'".':'Nenhuma pendencia nesta visao.')+'</p></div>';bindPrevChips();return;}
   let totA=0,totV=0,totR=0;
   const rows=bases.map((u,idx)=>{
     const d=resumo[u];const pend=d.alerta+d.vencida;const pct=pend?d.realizados/pend:1;
@@ -1370,10 +1387,13 @@ function renderPrev(){
     const det=(d.detalhe||[]).map(x=>{
       const map={vencida:['Vencida','pv-st-venc'],alerta:['Alerta','pv-st-alerta'],valida:['Valida','pv-st-valida'],outro:['—','pv-st-outro']};
       const m=map[x.status]||map.outro;
-      return '<span class="pv-pli"><span class="pv-pli-placa">'+x.placa+'</span><span class="pv-st '+m[1]+'">'+m[0]+'</span></span>';
+      const plClean=(x.placa||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+      const hit=busca&&plClean.includes(busca);
+      return '<span class="pv-pli'+(hit?' pv-pli-hit':'')+'"><span class="pv-pli-placa">'+x.placa+'</span><span class="pv-st '+m[1]+'">'+m[0]+'</span></span>';
     }).join('');
-    return '<tr class="pv-row" data-i="'+idx+'"><td class="pv-base-cell"><i class="ti ti-chevron-right pv-chev"></i>'+u+'</td><td>'+d.alerta+'</td><td>'+d.vencida+'</td><td>'+d.realizados+'</td><td><div class="pv-farol"><div class="pv-farol-bar"><span style="width:'+Math.round(pct*100)+'%;background:'+col+'"></span></div><span class="pv-farol-pct" style="color:'+col+'">'+Math.round(pct*100)+'%</span></div></td></tr>'
-      +'<tr class="pv-det-row" data-di="'+idx+'" style="display:none"><td colspan="5"><div class="pv-det-wrap">'+(det||'<span class="pv-pli-vazio">Sem placas na meta.</span>')+'</div></td></tr>';
+    const aberto=!!busca; // com busca, ja abre os detalhes
+    return '<tr class="pv-row'+(aberto?' open':'')+'" data-i="'+idx+'"><td class="pv-base-cell"><i class="ti ti-chevron-right pv-chev"></i>'+u+'</td><td>'+d.alerta+'</td><td>'+d.vencida+'</td><td>'+d.realizados+'</td><td><div class="pv-farol"><div class="pv-farol-bar"><span style="width:'+Math.round(pct*100)+'%;background:'+col+'"></span></div><span class="pv-farol-pct" style="color:'+col+'">'+Math.round(pct*100)+'%</span></div></td></tr>'
+      +'<tr class="pv-det-row" data-di="'+idx+'" style="display:'+(aberto?'':'none')+'"><td colspan="5"><div class="pv-det-wrap">'+(det||'<span class="pv-pli-vazio">Sem placas na meta.</span>')+'</div></td></tr>';
   }).join('');
   const totPend=totA+totV;const totPct=totPend?totR/totPend:1;const totCol=farolColor(totPct);
   const col1=PREV_VIEW==='trans'?'Responsavel':'Base';
@@ -1498,7 +1518,7 @@ async function carregarDados(){
 // handlers do login
 document.getElementById('lg-btn').onclick=fazerLogin;
 // ==== AVATAR PERSONALIZAVEL ====
-const AV_ICONES=['ti-user','ti-user-circle','ti-mood-smile','ti-star','ti-heart','ti-truck','ti-steering-wheel','ti-rocket','ti-crown','ti-cat','ti-flower','ti-bolt'];
+const AV_ICONES=['ti-user','ti-truck','ti-tool','ti-settings','ti-flag','ti-flag-3','ti-map-2','ti-clipboard-check','ti-building-warehouse','ti-chart-bar','ti-calendar-check','ti-photo'];
 const AV_CORES=['#8b95a3','#d4b876','#5ec9a0','#e0a94a','#e0645f','#6ea8e0','#b07de0','#e07db4'];
 let AVATAR=JSON.parse(localStorage.getItem('avatar_pref')||'{"tipo":"icone","icone":"ti-user","cor":"#8b95a3"}');
 let avTmp=null;
@@ -1559,6 +1579,7 @@ document.getElementById('pv-import-btn').onclick=()=>document.getElementById('pv
 document.getElementById('pv-file').onchange=e=>{if(e.target.files[0]){importarPreventivas(e.target.files[0]);e.target.value='';}};
 document.querySelectorAll('.pv-vtab').forEach(b=>b.onclick=()=>{document.querySelectorAll('.pv-vtab').forEach(x=>x.classList.remove('active'));b.classList.add('active');PREV_VIEW=b.dataset.pv;renderPrev();});
 document.querySelectorAll('.pvem-tab').forEach(t=>t.onclick=()=>{document.querySelectorAll('.pvem-tab').forEach(x=>x.classList.remove('active'));t.classList.add('active');PVEM_TAB=t.dataset.et;renderEmailCad();});
+(function(){const si=document.getElementById('pv-search');if(si){si.oninput=()=>{document.getElementById('pv-search-clear').style.display=si.value?'':'none';renderPrev();};document.getElementById('pv-search-clear').onclick=()=>{si.value='';document.getElementById('pv-search-clear').style.display='none';renderPrev();};}})();
 document.getElementById('pv-close').onclick=()=>document.getElementById('pvmodal').classList.remove('open');
 document.getElementById('pvmodal').onclick=e=>{if(e.target.id==='pvmodal')document.getElementById('pvmodal').classList.remove('open');};
 document.getElementById('lg-pass').addEventListener('keydown',e=>{if(e.key==='Enter')fazerLogin();});
