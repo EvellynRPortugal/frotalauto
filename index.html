@@ -1205,6 +1205,53 @@ let EMAIL_RESP=jsafe(localStorage.getItem('email_resp'),{});     // {"Bruno Barr
 const EMAIL_TESTE='evellynricarte@gmail.com';
 let MODO_TESTE_EMAIL=false;
 function salvarEmailBases(){localStorage.setItem('email_bases',JSON.stringify(EMAIL_BASES));localStorage.setItem('email_resp',JSON.stringify(EMAIL_RESP));}
+// ---- sincronizacao dos emails de destino via Supabase (tabela email_destinos) ----
+// carrega do banco; se a tabela estiver vazia, sobe o que existir no localStorage (migracao 1x)
+async function loadEmailDestinos(){
+  if(!sbOk)return;
+  try{
+    const {data,error}=await sb.from('email_destinos').select('*');
+    if(error)throw error;
+    if(data&&data.length){
+      EMAIL_BASES={};EMAIL_RESP={};
+      data.forEach(r=>{
+        const arr=(r.emails||'').split(',').map(x=>x.trim()).filter(Boolean);
+        if(!arr.length)return;
+        if(r.tipo==='base')EMAIL_BASES[r.chave]=arr;
+        else if(r.tipo==='resp')EMAIL_RESP[r.chave]=arr;
+      });
+      salvarEmailBases(); // mantem copia local como cache offline
+    }else{
+      await migrarEmailsLocais(); // primeira vez: aproveita o que ja foi digitado neste navegador
+    }
+  }catch(e){console.warn('Falha ao carregar emails de destino',e);}
+}
+async function migrarEmailsLocais(){
+  const rows=[];
+  Object.keys(EMAIL_BASES).forEach(k=>{const v=(EMAIL_BASES[k]||[]).join(',');if(v)rows.push({tipo:'base',chave:k,emails:v});});
+  Object.keys(EMAIL_RESP).forEach(k=>{const v=(EMAIL_RESP[k]||[]).join(',');if(v)rows.push({tipo:'resp',chave:k,emails:v});});
+  if(!rows.length)return;
+  try{await sb.from('email_destinos').upsert(rows,{onConflict:'tipo,chave'});}catch(e){console.warn('migrar emails locais',e);}
+}
+// grava/atualiza um destino no banco (e remove se a lista ficou vazia)
+async function pushEmailDestino(tipo,chave,arr){
+  salvarEmailBases();
+  if(!sbOk)return;
+  try{
+    const v=(arr||[]).join(',');
+    if(v)await sb.from('email_destinos').upsert({tipo,chave,emails:v},{onConflict:'tipo,chave'});
+    else await sb.from('email_destinos').delete().eq('tipo',tipo).eq('chave',chave);
+  }catch(e){console.warn('salvar email destino',e);}
+}
+function subscribeEmailRealtime(){
+  if(!sb)return;
+  sb.channel('emails-rt').on('postgres_changes',{event:'*',schema:'public',table:'email_destinos'},()=>{
+    loadEmailDestinos().then(()=>{
+      const pm=document.getElementById('pvmodal');
+      if(pm&&pm.classList.contains('open'))renderEmailCad();
+    });
+  }).subscribe();
+}
 function montarEmailHtml(titulo,d,tipo){
   const pend=d.alerta+d.vencida;const pct=pend?Math.round(d.realizados/pend*100):100;
   const col=pct>=100?'#5ec9a0':(pct>=50?'#e0a94a':'#e0645f');
@@ -1306,14 +1353,14 @@ function renderEmailCad(){
       const ems=(EMAIL_BASES[b]||[]).join(', ');
       return '<div class="pvem-row"><span class="pvem-k">'+escH(b)+'</span><input class="pvem-in" data-b="'+escH(b)+'" value="'+escH(ems)+'" placeholder="email1@..., email2@..."/></div>';
     }).join('')||'<div class="pv-noimp">Nenhuma base de coleta/entrega.</div>';
-    cont.querySelectorAll('.pvem-in').forEach(inp=>inp.onchange=()=>{const v=inp.value.split(',').map(x=>x.trim()).filter(Boolean);if(v.length)EMAIL_BASES[inp.dataset.b]=v;else delete EMAIL_BASES[inp.dataset.b];salvarEmailBases();});
+    cont.querySelectorAll('.pvem-in').forEach(inp=>inp.onchange=()=>{const v=inp.value.split(',').map(x=>x.trim()).filter(Boolean);if(v.length)EMAIL_BASES[inp.dataset.b]=v;else delete EMAIL_BASES[inp.dataset.b];pushEmailDestino('base',inp.dataset.b,v);});
   }else{
     const resps=RESPONSAVEIS.slice().sort();
     cont.innerHTML=resps.map(r=>{
       const ems=(EMAIL_RESP[r]||[]).join(', ');
       return '<div class="pvem-row"><span class="pvem-k">'+escH(r)+'</span><input class="pvem-in" data-r="'+escH(r)+'" value="'+escH(ems)+'" placeholder="email@..."/></div>';
     }).join('');
-    cont.querySelectorAll('.pvem-in').forEach(inp=>inp.onchange=()=>{const v=inp.value.split(',').map(x=>x.trim()).filter(Boolean);if(v.length)EMAIL_RESP[inp.dataset.r]=v;else delete EMAIL_RESP[inp.dataset.r];salvarEmailBases();});
+    cont.querySelectorAll('.pvem-in').forEach(inp=>inp.onchange=()=>{const v=inp.value.split(',').map(x=>x.trim()).filter(Boolean);if(v.length)EMAIL_RESP[inp.dataset.r]=v;else delete EMAIL_RESP[inp.dataset.r];pushEmailDestino('resp',inp.dataset.r,v);});
   }
 }
 function baixarExcelVeiculos(){
@@ -1517,6 +1564,8 @@ async function carregarDados(){
     subscribeHistRealtime();
     await loadOficinas();
     subscribeOficRealtime();
+    await loadEmailDestinos();
+    subscribeEmailRealtime();
     await loadPrevImports();
     refreshAll();
     if(USER_PAPEL==='editor')maybeAutoConf();
