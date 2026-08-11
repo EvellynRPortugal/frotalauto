@@ -1049,6 +1049,20 @@ function responsavelDaPlaca(placa){
   }}
   return '';
 }
+// base fisica (v.base) de uma placa, com conversao antiga<->mercosul (mesma logica de responsavelDaPlaca)
+function baseDaPlaca(placa){
+  placa=(placa||'').trim().toUpperCase().replace(/[^A-Z0-9]/g,'');
+  for(const uf in DATA)for(const v of DATA[uf].veiculos){
+    const vp=(v.placa||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+    if(vp===placa)return v.base||'';
+  }
+  const alt=placaConv(placa);
+  if(alt){for(const uf in DATA)for(const v of DATA[uf].veiculos){
+    const vp=(v.placa||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+    if(vp===alt)return v.base||'';
+  }}
+  return '';
+}
 // verifica se uma placa esta INATIVA (desativada) no painel, com conversao antiga<->mercosul
 function placaInativa(placa){
   placa=(placa||'').trim().toUpperCase().replace(/[^A-Z0-9]/g,'');
@@ -1175,7 +1189,7 @@ function preventivasResumo(view){
   // chave de agrupamento: base normal, ou responsavel na visao trans
   const chaveDe=(l)=>{
     if(view==='trans'){const r=responsavelDaPlaca(l.placa);return r||'(sem responsavel)';}
-    return l.unidade||'(sem base)';
+    return baseDaPlaca(l.placa)||l.unidade||'(sem base)';
   };
   // meta por chave: placas com alerta ou vencida na foto base
   const meta={}; // chave -> {placas:Set, alerta, vencida}
@@ -1372,7 +1386,7 @@ let PVEM_TAB='col';
 function renderEmailCad(){
   const cont=document.getElementById('pvem-content');if(!cont)return;
   if(PVEM_TAB==='col'){
-    // bases de coleta/entrega presentes
+    // bases de coleta/entrega = base fisica do veiculo (mesma chave usada no agrupamento do envio)
     const bases=new Set();
     for(const uf in DATA)for(const v of DATA[uf].veiculos){if((v.tipo_rota||'').toUpperCase().includes('COLETA')||(v.tipo_rota||'').toUpperCase().includes('ENTREGA'))bases.add(v.base);}
     const lista=[...bases].sort();
