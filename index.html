@@ -929,6 +929,18 @@ body.somente-consulta .avm-div{display:none!important}
   </div>
 </div></div>
 
+<div class="mbg" id="envmodal"><div class="modal3" style="max-width:420px">
+  <div class="m3-head"><div><h3>Enviar preventivas</h3><span>Escolha o que enviar</span></div><button class="m3-x" id="env-close">&times;</button></div>
+  <div class="vm-body">
+    <div class="m3-tipos" style="flex-direction:column;align-items:flex-start;gap:10px">
+      <label class="m3-chk"><input type="checkbox" id="env-chk-col" checked> Coleta e Entrega (por base)</label>
+      <label class="m3-chk"><input type="checkbox" id="env-chk-tr" checked> Transferencia (por responsavel)</label>
+    </div>
+    <div id="env-msg" style="font-size:12px;min-height:16px;margin:10px 0;color:var(--txt3)"></div>
+    <button class="c-add-btn" id="env-send" style="margin-left:0;width:100%">Enviar</button>
+  </div>
+</div></div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
@@ -1282,11 +1294,11 @@ function montarEmailHtml(titulo,d,tipo){
 <p style="color:#333;font-size:14px;margin:16px 0 0"><b>Evellyn</b><br><span style="color:#888;font-size:13px">Analista de Frota &middot; L'auto Cargo</span></p></div>
 <div style="background:#f7f9fc;padding:16px 28px;text-align:center;border-top:1px solid #eee"><div style="color:#aaa;font-size:11px">Email do painel de gestão de frota.</div></div></div>`;
 }
-async function enviarEmailsPreventivas(){
+async function enviarEmailsPreventivas(incluirCol,incluirTr){
   if(!prevBase()){alert('Marque uma base do mes primeiro.');return;}
   let ordens=[];
   // COLETA E ENTREGA -> por base
-  const rCol=preventivasResumo('coleta');
+  const rCol=incluirCol?preventivasResumo('coleta'):{};
   Object.keys(rCol).forEach(base=>{
     const d=rCol[base];const pend=d.alerta+d.vencida;
     if(pend>0 && d.realizados<pend){
@@ -1301,7 +1313,7 @@ async function enviarEmailsPreventivas(){
     }
   });
   // TRANSFERENCIA -> por responsavel
-  const rTr=preventivasResumo('trans');
+  const rTr=incluirTr?preventivasResumo('trans'):{};
   Object.keys(rTr).forEach(resp=>{
     const d=rTr[resp];const pend=d.alerta+d.vencida;
     if(pend>0 && d.realizados<pend){
@@ -1341,6 +1353,21 @@ async function enviarEmailsPreventivas(){
     alert('[Offline] '+ordens.length+' ordens preparadas (console).');
   }
 }
+function openEnvioModal(){
+  document.getElementById('env-chk-col').checked=true;
+  document.getElementById('env-chk-tr').checked=true;
+  document.getElementById('env-msg').textContent='';
+  document.getElementById('envmodal').classList.add('open');
+}
+document.getElementById('env-close').onclick=()=>document.getElementById('envmodal').classList.remove('open');
+document.getElementById('envmodal').onclick=e=>{if(e.target.id==='envmodal')document.getElementById('envmodal').classList.remove('open');};
+document.getElementById('env-send').onclick=()=>{
+  const incluirCol=document.getElementById('env-chk-col').checked;
+  const incluirTr=document.getElementById('env-chk-tr').checked;
+  if(!incluirCol&&!incluirTr){document.getElementById('env-msg').style.color=PAL.red;document.getElementById('env-msg').textContent='Selecione ao menos um tipo.';return;}
+  document.getElementById('envmodal').classList.remove('open');
+  enviarEmailsPreventivas(incluirCol,incluirTr);
+};
 let PVEM_TAB='col';
 function renderEmailCad(){
   const cont=document.getElementById('pvem-content');if(!cont)return;
@@ -1615,7 +1642,7 @@ document.querySelectorAll('#avatar-menu .avm-item').forEach(b=>b.onclick=()=>{
   if(am==='rel-manut')exportarXLS();
   if(am==='rel-prev')baixarExcelPreventivas();
   if(am==='prev-ger'){document.getElementById('pvmodal').classList.add('open');document.getElementById('pv-alert').style.display='none';renderPrev();renderEmailCad();}
-  if(am==='prev-env')enviarEmailsPreventivas();
+  if(am==='prev-env')openEnvioModal();
   if(am==='avatar')openAvatarModal();
   if(am==='sair')sair();
 });
@@ -2254,6 +2281,8 @@ async function salvarDetalhe(){
   if(v.bd['Responsável'])v.responsavel=v.bd['Responsável'];
   if(v.bd['Marca'])v.marca=v.bd['Marca'];
   if(v.bd['Modelo'])v.modelo=v.bd['Modelo'];
+  // Tipo de Rota alimenta o agrupamento TRANSFERENCIA e as visoes das preventivas
+  if(v.bd['Tipo de Rota']!==undefined)v.tipo_rota=v.bd['Tipo de Rota'];
   save();pushVeiculo(v.placa);
   vdEditando=false;renderDetalhe();renderVeic();refreshAll();
 }
