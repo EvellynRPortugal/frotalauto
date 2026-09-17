@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>Gestao da Frota — L'auto Cargo | v2 Alta/Media Monta</title>
+<title>Gestao da Frota — L'auto Cargo</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
 <style id="tabler-embed">/* Tabler Icons 2.47.0 (subset embutido) */
@@ -757,7 +757,6 @@ body.somente-consulta .avm-div{display:none!important}
     <span class="hdr-pill"><b id="h-man">29</b> em manutencao</span>
     <span class="hdr-pill"><b id="h-disp">95%</b> disponibilidade</span>
     <span class="hdr-pill" id="sync-status" style="display:none"></span>
-    <span class="hdr-pill" id="build-badge" title="Versao com classificacao Alta/Media Monta" style="border-color:var(--gold);color:var(--gold);font-weight:700">v2 &bull; Alta/Media Monta</span>
     <button class="hdr-pill" id="btn-conf" style="cursor:pointer;border:1px solid var(--blue);background:rgba(59,130,246,.12);color:var(--blue2);font-weight:600"><i class="ti ti-clipboard-check" style="margin-right:5px"></i>Conferencia <span id="conf-badge" style="display:none;background:var(--amber);color:#0a1628;border-radius:9px;padding:0 7px;font-size:11px;margin-left:4px"></span></button>
     <div class="avatar-wrap">
       <button class="avatar-btn" id="avatar-btn" title="Menu"><i class="ti ti-user"></i></button>
@@ -835,7 +834,7 @@ body.somente-consulta .avm-div{display:none!important}
       <div class="kpi b-amber"><div class="lbl"><i class="ti ti-tool"></i> Media Monta</div><div class="val" id="m-media">0%</div><div class="delta flat" id="m-media-d">0 veiculos</div></div>
       <div class="kpi b-purple"><div class="lbl"><i class="ti ti-clock-exclamation"></i> Tempo medio parado</div><div class="val" id="m-tmp">0d</div><div class="delta flat" id="m-tmp-d">media dos parados</div><select id="m-tmp-filter" class="dash-select" aria-label="Filtrar tempo medio parado"><option value="geral">Geral</option><option value="alta">Alta Monta</option><option value="media">Media Monta</option><option value="severo">Severo</option><option value="demais">Demais (sem Alta, Media ou Severo)</option></select></div>
     </div>
-    <div class="panel"><div class="panel-t">Comparativo do tempo medio parado</div><div class="panel-sub">Media de dias dos veiculos atualmente em manutencao, por classificacao</div><div class="chart-box"><canvas id="ch-tmp-class"></canvas></div></div>
+    <div class="panel"><div class="panel-t">Tempo medio parado por classificacao</div><div class="panel-sub">Comparacao dos dias medios em manutencao entre os principais grupos</div><div class="chart-box"><canvas id="ch-tmp-class"></canvas></div></div>
     <div class="grid-2">
       <div class="panel"><div class="panel-t">Manutencoes por estado</div><div class="panel-sub">Veiculos parados em cada UF</div><div class="chart-box"><canvas id="ch-uf"></canvas></div></div>
       <div class="panel"><div class="panel-t">Manutencoes por projeto</div><div class="panel-sub">Distribuicao entre os contratos</div><div class="chart-box"><canvas id="ch-proj"></canvas></div></div>
@@ -900,13 +899,13 @@ body.somente-consulta .avm-div{display:none!important}
   <div class="kpi-grid">
     <div class="kpi b-blue"><div class="lbl">Frota total</div><div class="val" id="mm-tot">0</div></div>
     <div class="kpi b-amber"><div class="lbl">Em manutencao</div><div class="val" id="mm-man">0</div></div>
-    <div class="kpi b-green mkpi-click" data-mf="libhoje"><div class="lbl">Liberacao hoje <i class="ti ti-click mkpi-ic"></i></div><div class="val" id="mm-libhoje">0</div></div>
+    <div class="kpi b-green mkpi-click" data-mf="libhoje"><div class="lbl">Liberacao hoje <i class="ti ti-click mkpi-ic"></i></div><div class="val" id="mm-libhoje">0</div><div class="delta flat" id="mm-libhoje-pct">0% do total em manutencao</div></div>
     <div class="kpi b-red mkpi-click" data-mf="atrasado"><div class="lbl">Atrasados <i class="ti ti-click mkpi-ic"></i></div><div class="val" id="mm-late">0</div></div>
   </div>
   <div class="kpi-grid" style="margin-top:-8px">
-    <div class="kpi b-blue mkpi-click" data-mf="corretiva"><div class="lbl"><i class="ti ti-tool"></i> Corretiva <i class="ti ti-click mkpi-ic"></i></div><div class="val" id="mm-corr">0</div><div class="delta flat">reparo de falha</div></div>
-    <div class="kpi b-green mkpi-click" data-mf="preventiva"><div class="lbl"><i class="ti ti-calendar-check"></i> Preventiva <i class="ti ti-click mkpi-ic"></i></div><div class="val" id="mm-prevc">0</div><div class="delta flat">manutencao programada</div></div>
-    <div class="kpi b-red mkpi-click" data-mf="severa"><div class="lbl"><i class="ti ti-alert-triangle"></i> Severa <i class="ti ti-click mkpi-ic"></i></div><div class="val" id="mm-sevc">0</div><div class="delta flat">parada critica</div></div>
+    <div class="kpi b-blue mkpi-click" data-mf="corretiva"><div class="lbl"><i class="ti ti-tool"></i> Corretiva <i class="ti ti-click mkpi-ic"></i></div><div class="val" id="mm-corr">0</div><div class="delta flat" id="mm-corr-pct">0% do total em manutencao</div></div>
+    <div class="kpi b-green mkpi-click" data-mf="preventiva"><div class="lbl"><i class="ti ti-calendar-check"></i> Preventiva <i class="ti ti-click mkpi-ic"></i></div><div class="val" id="mm-prevc">0</div><div class="delta flat" id="mm-prevc-pct">0% do total em manutencao</div></div>
+    <div class="kpi b-red mkpi-click" data-mf="severa"><div class="lbl"><i class="ti ti-alert-triangle"></i> Severa <i class="ti ti-click mkpi-ic"></i></div><div class="val" id="mm-sevc">0</div><div class="delta flat" id="mm-sevc-pct">0% do total em manutencao</div></div>
     <div class="kpi b-amber mkpi-click" data-mf="conferencia"><div class="lbl"><i class="ti ti-clipboard-list"></i> Falta conferencia <i class="ti ti-click mkpi-ic"></i></div><div class="val" id="mm-conf">0</div><div class="delta flat">pendentes de conferir</div></div>
   </div>
   <div class="mfilter">
@@ -2236,7 +2235,20 @@ function renderMensal(){
   const comp=[['Geral s/ severos',grupos.geral,PAL.blue],['Alta Monta',alta,PAL.red],['Media Monta',media,PAL.amber],['Severo',severo,PAL.purple],['Demais',demais,PAL.green]];
   const compMed=comp.map(x=>mediaDias(x[1]));
   if(compMed.some(x=>x.media!==null)&&HASCHART()){
-    charts.tmpClass=new Chart(document.getElementById('ch-tmp-class'),{type:'bar',data:{labels:comp.map((x,i)=>x[0]+' ('+x[1].length+')'),datasets:[{data:compMed.map(x=>x.media),backgroundColor:comp.map(x=>x[2]),borderRadius:7,maxBarThickness:54}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' '+c.raw+' dia'+(c.raw===1?'':'s')+' em media',afterLabel:c=>' '+comp[c.dataIndex][1].length+' veiculo'+(comp[c.dataIndex][1].length!==1?'s':'')}}},scales:{x:{ticks:{color:PAL.txt2,font:{size:11}},grid:{display:false}},y:{beginAtZero:true,ticks:{color:PAL.txt2,font:{size:11},precision:0,callback:v=>v+'d'},grid:{color:'rgba(35,57,92,.5)'}}}}});
+    const chartColors=comp.map((x,i)=>i===3?'rgba(224,100,95,.88)':(i===1?'rgba(139,149,163,.95)':(i===2?'rgba(196,204,214,.82)':'rgba(108,124,145,.78)')));
+    charts.tmpClass=new Chart(document.getElementById('ch-tmp-class'),{
+      type:'bar',
+      data:{labels:comp.map(x=>x[0]),datasets:[{data:compMed.map(x=>x.media),backgroundColor:chartColors,borderColor:chartColors,borderWidth:1,borderRadius:3,borderSkipped:false,maxBarThickness:30}]},
+      options:{
+        indexAxis:'y',responsive:true,maintainAspectRatio:false,
+        layout:{padding:{top:4,right:18,bottom:4,left:4}},
+        plugins:{legend:{display:false},tooltip:{backgroundColor:'#0d1117',borderColor:'rgba(255,255,255,.12)',borderWidth:1,titleColor:'#f4f7fa',bodyColor:'#c4ccd6',padding:11,displayColors:false,callbacks:{title:c=>c[0].label,label:c=>'Tempo medio: '+(c.raw??0)+' dia'+(c.raw===1?'':'s'),afterLabel:c=>'Veiculos no grupo: '+comp[c.dataIndex][1].length}}},
+        scales:{
+          x:{beginAtZero:true,ticks:{color:'#93a0b0',font:{size:11},precision:0,callback:v=>v+'d'},grid:{color:'rgba(255,255,255,.055)',drawBorder:false},border:{display:false}},
+          y:{ticks:{color:'#d9e0e8',font:{size:12,weight:'600'},padding:8},grid:{display:false},border:{display:false}}
+        }
+      }
+    });
   }else emptyCanvas('ch-tmp-class');
   // por estado
   const byUF={};man.forEach(x=>byUF[x.uf]=(byUF[x.uf]||0)+1);
@@ -2344,6 +2356,11 @@ function renderManut(){
   if(el('mm-prevc'))el('mm-prevc').textContent=prevc.length;
   if(el('mm-sevc'))el('mm-sevc').textContent=sevc.length;
   if(el('mm-conf'))el('mm-conf').textContent=conf.length;
+  const pctMan=n=>man.length?Math.round(n/man.length*100):0;
+  if(el('mm-libhoje-pct'))el('mm-libhoje-pct').textContent=pctMan(libhoje.length)+'% do total em manutencao';
+  if(el('mm-corr-pct'))el('mm-corr-pct').textContent=pctMan(corr.length)+'% do total em manutencao';
+  if(el('mm-prevc-pct'))el('mm-prevc-pct').textContent=pctMan(prevc.length)+'% do total em manutencao';
+  if(el('mm-sevc-pct'))el('mm-sevc-pct').textContent=pctMan(sevc.length)+'% do total em manutencao';
   // destaque do card ativo + mensagem de filtro
   document.querySelectorAll('.mkpi-click').forEach(c=>c.classList.toggle('mkpi-on',c.dataset.mf===mfCardFilter));
   const rotulos={atrasado:'atrasados',corretiva:'em corretiva',preventiva:'em preventiva',severa:'em estado severo',conferencia:'pendentes de conferencia',libhoje:'com liberacao hoje'};
