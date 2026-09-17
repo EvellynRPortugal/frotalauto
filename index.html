@@ -1556,38 +1556,51 @@ async function dispararEnvioPrev(tipo){
   }
 }
 let PVEM_TAB='col';
+// Lista TODAS as bases/unidades de Coleta e Entrega que podem receber preventiva.
+// Nao depende de a base ter pendencia no relatorio atual, assim o email pode ser cadastrado antecipadamente.
+function listarBasesEmailPreventivas(){
+  const uni=new Set(Object.keys(EMAIL_BASES));
+
+  // 1) Unidades existentes em qualquer relatorio de preventiva ja importado.
+  for(const imp of PREV_IMPORTS){
+    const dados=Array.isArray(imp.dados)?imp.dados:[];
+    for(const l of filtraVisao(dados,'coleta')){
+      if(placaInativa(l.placa))continue;
+      const unidadeCadastro=(unidadeDaPlaca(l.placa)||'').trim().toUpperCase();
+      const chave=unidadeCadastro==='JPA CPV'?'JPA CPV':String(l.unidade||unidadeCadastro||'').trim();
+      if(chave&&chave!=='(sem base)')uni.add(chave);
+    }
+  }
+
+  // 2) Unidades do cadastro de veiculos, inclusive as que ainda nao apareceram no relatorio do mes.
+  for(const uf in DATA){
+    for(const v of (DATA[uf].veiculos||[])){
+      const rota=(v.tipo_rota||'').toUpperCase();
+      if(!rota.includes('COLETA')&&!rota.includes('ENTREGA'))continue;
+      const unidade=String((v.bd&&v.bd.Unidade)||v.base||'').trim();
+      if(!unidade)continue;
+      uni.add(unidade.toUpperCase()==='JPA CPV'?'JPA CPV':unidade);
+    }
+  }
+
+  return [...uni].filter(Boolean).sort((a,b)=>a.localeCompare(b,'pt-BR'));
+}
 function renderEmailCad(){
   const cont=document.getElementById('pvem-content');if(!cont)return;
   if(PVEM_TAB==='col'){
-    // usa as MESMAS chaves do envio (unidades de coleta/entrega do preventivasResumo)
-    let lista=[];
-    if(prevBase()){
-      const rCol=preventivasResumo('coleta');
-      lista=Object.keys(rCol).sort();
-    }
-    // fallback: se nao ha base do mes marcada, lista as unidades do banco
-    if(!lista.length){
-      const uni=new Set();
-      for(const uf in DATA)for(const v of DATA[uf].veiculos){
-        if((v.tipo_rota||'').toUpperCase().includes('COLETA')||(v.tipo_rota||'').toUpperCase().includes('ENTREGA')){
-          const un=((v.bd&&v.bd.Unidade)||'').trim().toUpperCase();
-          uni.add(un==='JPA CPV'?'JPA CPV':v.base);
-        }
-      }
-      lista=[...uni].sort();
-    }
-    cont.innerHTML=lista.map(b=>{
+    const lista=listarBasesEmailPreventivas();
+    cont.innerHTML=(lista.length?'<div style="font-size:11.5px;color:var(--txt3);margin:0 0 5px">Cadastre um ou mais emails para cada base. Separe varios emails por virgula.</div>':'')+lista.map(b=>{
       const ems=(EMAIL_BASES[b]||[]).join(', ');
       return '<div class="pvem-row"><span class="pvem-k">'+prevGrupoLabel(b)+'</span><input class="pvem-in" data-b="'+b.replace(/"/g,'&quot;')+'" value="'+ems.replace(/"/g,'&quot;')+'" placeholder="email1@..., email2@..."/></div>';
-    }).join('')||'<div class="pv-noimp">Marque uma base do mes para listar as unidades.</div>';
-    cont.querySelectorAll('.pvem-in').forEach(inp=>inp.onchange=()=>{const v=inp.value.split(',').map(x=>x.trim()).filter(Boolean);if(v.length)EMAIL_BASES[inp.dataset.b]=v;else delete EMAIL_BASES[inp.dataset.b];salvarEmailBases();});
+    }).join('')||'<div class="pv-noimp">Nenhuma base de Coleta/Entrega encontrada no cadastro.</div>';
+    cont.querySelectorAll('.pvem-in[data-b]').forEach(inp=>inp.onchange=()=>{const v=inp.value.split(',').map(x=>x.trim()).filter(Boolean);if(v.length)EMAIL_BASES[inp.dataset.b]=v;else delete EMAIL_BASES[inp.dataset.b];salvarEmailBases();});
   }else{
     const resps=RESPONSAVEIS.slice().sort();
-    cont.innerHTML=resps.map(r=>{
+    cont.innerHTML='<div style="font-size:11.5px;color:var(--txt3);margin:0 0 5px">Cadastre os emails dos responsaveis pelas transferencias.</div>'+resps.map(r=>{
       const ems=(EMAIL_RESP[r]||[]).join(', ');
       return '<div class="pvem-row"><span class="pvem-k">'+r+'</span><input class="pvem-in" data-r="'+r.replace(/"/g,'&quot;')+'" value="'+ems.replace(/"/g,'&quot;')+'" placeholder="email@..."/></div>';
     }).join('');
-    cont.querySelectorAll('.pvem-in').forEach(inp=>inp.onchange=()=>{const v=inp.value.split(',').map(x=>x.trim()).filter(Boolean);if(v.length)EMAIL_RESP[inp.dataset.r]=v;else delete EMAIL_RESP[inp.dataset.r];salvarEmailBases();});
+    cont.querySelectorAll('.pvem-in[data-r]').forEach(inp=>inp.onchange=()=>{const v=inp.value.split(',').map(x=>x.trim()).filter(Boolean);if(v.length)EMAIL_RESP[inp.dataset.r]=v;else delete EMAIL_RESP[inp.dataset.r];salvarEmailBases();});
   }
 }
 function baixarExcelVeiculos(){
@@ -1849,7 +1862,14 @@ document.querySelectorAll('#avatar-menu .avm-item').forEach(b=>b.onclick=()=>{
   if(am==='rel-veic')baixarExcelVeiculos();
   if(am==='rel-manut')exportarXLS();
   if(am==='rel-prev')baixarExcelPreventivas();
-  if(am==='prev-ger'){document.getElementById('pvmodal').classList.add('open');document.getElementById('pv-alert').style.display='none';renderPrev();renderEmailCad();}
+  if(am==='prev-ger'){
+    document.getElementById('pvmodal').classList.add('open');
+    document.getElementById('pv-alert').style.display='none';
+    // sempre abre o cadastro de emails pela lista de bases; o usuario pode trocar para responsaveis depois
+    PVEM_TAB='col';
+    document.querySelectorAll('.pvem-tab').forEach(x=>x.classList.toggle('active',x.dataset.et==='col'));
+    renderPrev();renderEmailCad();
+  }
   if(am==='prev-env')enviarEmailsPreventivas();
   if(am==='avatar')openAvatarModal();
   if(am==='sair')sair();
