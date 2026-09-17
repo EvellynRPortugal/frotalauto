@@ -209,6 +209,34 @@ canvas{max-width:100%}
 .chart-box{position:relative;height:260px}
 .chart-box.tall{height:300px}
 
+/* filtros individuais dos graficos do dashboard */
+.dash-filter-panel{position:relative;overflow:visible}
+.dash-filter-title{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.dash-filter-btn{height:30px;min-width:36px;padding:0 9px;border:1px solid var(--line);border-radius:8px;background:var(--bg2);color:var(--txt2);display:inline-flex;align-items:center;gap:6px;justify-content:center;cursor:pointer;font:inherit;font-size:12px;transition:.15s ease}
+.dash-filter-btn:hover,.dash-filter-btn.open{border-color:rgba(96,165,250,.55);color:var(--blue2);background:rgba(59,130,246,.08)}
+.dash-filter-btn .df-arrow{font-size:10px;transition:transform .15s ease}
+.dash-filter-btn.open .df-arrow{transform:rotate(180deg)}
+.dash-filter-btn .df-badge{display:none;min-width:18px;height:18px;padding:0 5px;border-radius:10px;background:var(--blue);color:#fff;font-size:10px;font-weight:800;align-items:center;justify-content:center}
+.dash-filter-btn.has-filter .df-badge{display:inline-flex}
+.dash-filter-menu{display:none;position:absolute;z-index:80;top:54px;right:18px;width:min(360px,calc(100% - 36px));max-height:470px;overflow:auto;background:#111820;border:1px solid var(--line);border-radius:12px;box-shadow:0 18px 45px rgba(0,0,0,.38);padding:12px}
+.dash-filter-menu.open{display:block}
+.dash-filter-top{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:2px 2px 10px;border-bottom:1px solid var(--line);margin-bottom:9px}
+.dash-filter-top b{font-size:12px;color:var(--txt)}
+.dash-filter-top span{font-size:10px;color:var(--txt3)}
+.dash-filter-clear{border:0;background:none;color:var(--blue2);font-size:11px;font-weight:700;cursor:pointer;padding:4px 2px}
+.dash-filter-clear:disabled{opacity:.35;cursor:default}
+.dash-filter-group{padding:8px 2px 9px;border-bottom:1px solid rgba(35,57,92,.55)}
+.dash-filter-group:last-child{border-bottom:0;padding-bottom:2px}
+.dash-filter-group-title{font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:var(--txt3);font-weight:800;margin-bottom:7px}
+.dash-filter-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px 10px}
+.dash-filter-options.projects{grid-template-columns:1fr;max-height:150px;overflow:auto;padding-right:2px}
+.dash-filter-opt{display:flex;align-items:center;gap:7px;min-width:0;font-size:11px;color:var(--txt2);cursor:pointer;padding:4px 3px;border-radius:6px}
+.dash-filter-opt:hover{background:rgba(255,255,255,.035);color:var(--txt)}
+.dash-filter-opt input{accent-color:var(--blue);width:14px;height:14px;flex:0 0 auto}
+.dash-filter-opt span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dash-filter-note{font-size:10px;color:var(--txt3);margin-top:7px}
+@media(max-width:720px){.dash-filter-menu{right:12px;width:calc(100% - 24px)}.dash-filter-options{grid-template-columns:1fr}}
+
 /* mapa SVG */
 .map-wrap{display:grid;grid-template-columns:1fr 460px;gap:18px}
 /* modo somente consulta: esconde tudo que edita */
@@ -624,6 +652,36 @@ body.somente-consulta .avm-div{display:none!important}
 .mkpi-click:hover .mkpi-ic{opacity:.7}
 .mkpi-on{border-color:var(--blue2)!important;box-shadow:0 0 0 2px rgba(196,204,214,.25),var(--shadow-sm)!important}
 .mkpi-on .mkpi-ic{opacity:.9;color:var(--blue2)}
+.mkpi-split{display:grid;grid-template-columns:minmax(0,1fr) minmax(118px,.85fr);align-items:center;gap:18px;margin-top:12px}
+.mkpi-left{min-width:0}
+.mkpi-left .val{margin-top:0}
+.mkpi-pct{min-width:0;padding-left:18px;border-left:1px solid color-mix(in srgb,var(--accent) 48%,rgba(255,255,255,.16));display:flex;flex-direction:column;justify-content:center;align-items:flex-start;min-height:78px}
+.mkpi-pct-title{font-size:10px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:var(--txt3);line-height:1.1;margin-bottom:7px}
+.mkpi-pct-num{font-size:30px;font-weight:800;letter-spacing:-1px;color:var(--accent);line-height:.95;font-variant-numeric:tabular-nums;}
+.mkpi-pct-lab{font-size:10.5px;font-weight:600;color:var(--txt3);line-height:1.25;margin-top:7px;white-space:normal}
+.mkpi-click:hover .mkpi-pct{border-left-color:var(--accent)}
+@media(max-width:700px){.mkpi-split{grid-template-columns:1fr;gap:10px}.mkpi-pct{border-left:0;border-top:1px solid color-mix(in srgb,var(--accent) 45%,rgba(255,255,255,.16));padding:12px 0 0;min-height:auto}}
+
+/* KPIs da aba Manutencao — layout original, percentual em destaque */
+#view-manut .mkpi-main-pct{
+  /* mesma tipografia e mesma cor branca dos valores dos demais cards */
+  font-family:'Inter','Segoe UI',system-ui,sans-serif;
+  color:#fff;
+  font-size:38px;
+  font-weight:300;
+  letter-spacing:-1.5px;
+  line-height:1;
+  font-variant-numeric:tabular-nums;
+  /* neon apenas na porcentagem */
+  
+}
+#view-manut .mkpi-count-line{
+  margin-top:8px;
+  color:var(--txt3);
+  font-size:12px;
+  font-weight:600;
+}
+
 .vm-save{width:100%;padding:13px;background:var(--gold);color:#0a1628;border:none;border-radius:10px;font-weight:800;font-size:15px;cursor:pointer}
 .vadd-btn{background:linear-gradient(135deg,var(--green),#3fb98a);color:#08201a;border:none;padding:10px 16px;border-radius:10px;font-weight:700;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
 .vfilters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
@@ -832,16 +890,16 @@ body.somente-consulta .avm-div{display:none!important}
       <div class="kpi b-blue"><div class="lbl"><i class="ti ti-tool"></i> Em manutencao</div><div class="val" id="m-man">0</div><div class="delta flat" id="m-man-d">parados na oficina</div></div>
       <div class="kpi b-red"><div class="lbl"><i class="ti ti-alert-triangle"></i> Alta Monta</div><div class="val" id="m-alta">0%</div><div class="delta flat" id="m-alta-d">0 veiculos</div></div>
       <div class="kpi b-amber"><div class="lbl"><i class="ti ti-tool"></i> Media Monta</div><div class="val" id="m-media">0%</div><div class="delta flat" id="m-media-d">0 veiculos</div></div>
-      <div class="kpi b-purple"><div class="lbl"><i class="ti ti-clock-exclamation"></i> Tempo medio parado</div><div class="val" id="m-tmp">0d</div><div class="delta flat" id="m-tmp-d">media dos parados</div><select id="m-tmp-filter" class="dash-select" aria-label="Filtrar tempo medio parado"><option value="geral">Geral</option><option value="alta">Alta Monta</option><option value="media">Media Monta</option><option value="severo">Severo</option><option value="demais">Demais (sem Alta, Media ou Severo)</option></select></div>
+      <div class="kpi b-purple"><div class="lbl"><i class="ti ti-clock-exclamation"></i> Tempo medio parado</div><div class="val" id="m-tmp">0d</div><div class="delta flat" id="m-tmp-d">media dos parados</div><select id="m-tmp-filter" class="dash-select" aria-label="Filtrar tempo medio parado"><option value="geral">Geral</option><option value="alta">Alta Monta</option><option value="media">Média Monta</option><option value="severo">Severo</option><option value="baixa">Baixa Monta</option></select></div>
     </div>
-    <div class="panel"><div class="panel-t">Tempo medio parado por classificacao</div><div class="panel-sub">Comparacao dos dias medios em manutencao entre os principais grupos</div><div class="chart-box"><canvas id="ch-tmp-class"></canvas></div></div>
+    <div class="panel"><div class="panel-t">Tempo medio parado por classificacao</div><div class="panel-sub">Verde: menos de 10 dias · Laranja: 10 a 20 dias · Vermelho: acima de 20 dias — clique na barra para destacar</div><div class="chart-box"><canvas id="ch-tmp-class"></canvas></div></div>
     <div class="grid-2">
-      <div class="panel"><div class="panel-t">Manutencoes por estado</div><div class="panel-sub">Veiculos parados em cada UF</div><div class="chart-box"><canvas id="ch-uf"></canvas></div></div>
-      <div class="panel"><div class="panel-t">Manutencoes por projeto</div><div class="panel-sub">Distribuicao entre os contratos</div><div class="chart-box"><canvas id="ch-proj"></canvas></div></div>
+      <div class="panel dash-filter-panel" data-df-panel="uf"><div class="panel-t dash-filter-title"><span>Manutencoes por estado</span><button class="dash-filter-btn" data-df-btn="uf" title="Filtrar este grafico"><i class="ti ti-filter"></i><span class="df-badge" id="df-badge-uf">0</span><span class="df-arrow">&#9662;</span></button></div><div class="panel-sub">Veiculos parados em cada UF</div><div class="dash-filter-menu" id="df-menu-uf"></div><div class="chart-box"><canvas id="ch-uf"></canvas></div></div>
+      <div class="panel dash-filter-panel" data-df-panel="proj"><div class="panel-t dash-filter-title"><span>Manutencoes por projeto</span><button class="dash-filter-btn" data-df-btn="proj" title="Filtrar este grafico"><i class="ti ti-filter"></i><span class="df-badge" id="df-badge-proj">0</span><span class="df-arrow">&#9662;</span></button></div><div class="panel-sub">Distribuicao entre os contratos</div><div class="dash-filter-menu" id="df-menu-proj"></div><div class="chart-box"><canvas id="ch-proj"></canvas></div></div>
     </div>
     <div class="grid-2">
-      <div class="panel"><div class="panel-t">Manutencoes por perfil de veiculo</div><div class="panel-sub">Quais tipos param mais</div><div class="chart-box"><canvas id="ch-perfil"></canvas></div></div>
-      <div class="panel"><div class="panel-t">Top bases por veiculos parados</div><div class="panel-sub">Ranking de oficina por base</div><div id="rank-base"></div></div>
+      <div class="panel dash-filter-panel" data-df-panel="perfil"><div class="panel-t dash-filter-title"><span>Manutencoes por perfil de veiculo</span><button class="dash-filter-btn" data-df-btn="perfil" title="Filtrar este grafico"><i class="ti ti-filter"></i><span class="df-badge" id="df-badge-perfil">0</span><span class="df-arrow">&#9662;</span></button></div><div class="panel-sub">Quais tipos param mais</div><div class="dash-filter-menu" id="df-menu-perfil"></div><div class="chart-box"><canvas id="ch-perfil"></canvas></div></div>
+      <div class="panel dash-filter-panel" data-df-panel="base"><div class="panel-t dash-filter-title"><span>Top bases por veiculos parados</span><button class="dash-filter-btn" data-df-btn="base" title="Filtrar este ranking"><i class="ti ti-filter"></i><span class="df-badge" id="df-badge-base">0</span><span class="df-arrow">&#9662;</span></button></div><div class="panel-sub">Ranking de oficina por base</div><div class="dash-filter-menu" id="df-menu-base"></div><div id="rank-base"></div></div>
     </div>
     <div class="panel"><div class="panel-t">Veiculos que mais entraram na oficina</div><div class="panel-sub">Reincidencia historica — todas as passagens registradas</div><div id="rank-reinc"></div></div>
   </div>
@@ -897,15 +955,15 @@ body.somente-consulta .avm-div{display:none!important}
 <!-- MANUTENCAO -->
 <div class="view" id="view-manut">
   <div class="kpi-grid">
-    <div class="kpi b-blue"><div class="lbl">Frota total</div><div class="val" id="mm-tot">0</div></div>
-    <div class="kpi b-amber"><div class="lbl">Em manutencao</div><div class="val" id="mm-man">0</div></div>
-    <div class="kpi b-green mkpi-click" data-mf="libhoje"><div class="lbl">Liberacao hoje <i class="ti ti-click mkpi-ic"></i></div><div class="val" id="mm-libhoje">0</div><div class="delta flat" id="mm-libhoje-pct">0% do total em manutencao</div></div>
-    <div class="kpi b-red mkpi-click" data-mf="atrasado"><div class="lbl">Atrasados <i class="ti ti-click mkpi-ic"></i></div><div class="val" id="mm-late">0</div></div>
+    <div class="kpi b-blue"><div class="lbl"><i class="ti ti-truck"></i> Frota total</div><div class="val" id="mm-tot">0</div></div>
+    <div class="kpi b-amber"><div class="lbl"><i class="ti ti-tool"></i> Em manutencao</div><div class="val" id="mm-man">0</div></div>
+    <div class="kpi b-green mkpi-click" data-mf="libhoje"><div class="lbl"><i class="ti ti-calendar-check"></i> Liberacao hoje <i class="ti ti-click mkpi-ic"></i></div><div class="val mkpi-main-pct" id="mm-libhoje">0%</div><div class="delta flat mkpi-count-line" id="mm-libhoje-count">0 de 0 veiculos em manutencao</div></div>
+    <div class="kpi b-red mkpi-click" data-mf="atrasado"><div class="lbl"><i class="ti ti-clock-exclamation"></i> Atrasados <i class="ti ti-click mkpi-ic"></i></div><div class="val" id="mm-late">0</div></div>
   </div>
   <div class="kpi-grid" style="margin-top:-8px">
-    <div class="kpi b-blue mkpi-click" data-mf="corretiva"><div class="lbl"><i class="ti ti-tool"></i> Corretiva <i class="ti ti-click mkpi-ic"></i></div><div class="val" id="mm-corr">0</div><div class="delta flat" id="mm-corr-pct">0% do total em manutencao</div></div>
-    <div class="kpi b-green mkpi-click" data-mf="preventiva"><div class="lbl"><i class="ti ti-calendar-check"></i> Preventiva <i class="ti ti-click mkpi-ic"></i></div><div class="val" id="mm-prevc">0</div><div class="delta flat" id="mm-prevc-pct">0% do total em manutencao</div></div>
-    <div class="kpi b-red mkpi-click" data-mf="severa"><div class="lbl"><i class="ti ti-alert-triangle"></i> Severa <i class="ti ti-click mkpi-ic"></i></div><div class="val" id="mm-sevc">0</div><div class="delta flat" id="mm-sevc-pct">0% do total em manutencao</div></div>
+    <div class="kpi b-blue mkpi-click" data-mf="corretiva"><div class="lbl"><i class="ti ti-tool"></i> Corretiva <i class="ti ti-click mkpi-ic"></i></div><div class="val mkpi-main-pct" id="mm-corr">0%</div><div class="delta flat mkpi-count-line" id="mm-corr-count">0 de 0 veiculos em manutencao</div></div>
+    <div class="kpi b-green mkpi-click" data-mf="preventiva"><div class="lbl"><i class="ti ti-calendar-check"></i> Preventiva <i class="ti ti-click mkpi-ic"></i></div><div class="val mkpi-main-pct" id="mm-prevc">0%</div><div class="delta flat mkpi-count-line" id="mm-prevc-count">0 de 0 veiculos em manutencao</div></div>
+    <div class="kpi b-red mkpi-click" data-mf="severa"><div class="lbl"><i class="ti ti-alert-triangle"></i> Severa <i class="ti ti-click mkpi-ic"></i></div><div class="val mkpi-main-pct" id="mm-sevc">0%</div><div class="delta flat mkpi-count-line" id="mm-sevc-count">0 de 0 veiculos em manutencao</div></div>
     <div class="kpi b-amber mkpi-click" data-mf="conferencia"><div class="lbl"><i class="ti ti-clipboard-list"></i> Falta conferencia <i class="ti ti-click mkpi-ic"></i></div><div class="val" id="mm-conf">0</div><div class="delta flat">pendentes de conferir</div></div>
   </div>
   <div class="mfilter">
@@ -2188,11 +2246,11 @@ function montaBadge(v){const m=getMonta(v);if(m==='ALTA')return '<span class="tp
 function mediaDias(lista){const ds=lista.map(x=>daysIn(x.v)).filter(d=>d!==null);return {media:ds.length?Math.round(ds.reduce((a,b)=>a+b,0)/ds.length):null,validos:ds.length};}
 function gruposTempoMonta(man){
   const severo=man.filter(x=>x.v.status==='SEVERA');
-  const geral=man.filter(x=>x.v.status!=='SEVERA'); // mantem a regra: severos nao entram no tempo medio geral
+  const geral=man.filter(x=>x.v.status!=='SEVERA'); // regra: severos nao entram no tempo medio Geral
   const alta=geral.filter(x=>getMonta(x.v)==='ALTA');
   const media=geral.filter(x=>getMonta(x.v)==='MEDIA');
-  const demais=geral.filter(x=>!getMonta(x.v));
-  return {geral,alta,media,severo,demais};
+  const baixa=geral.filter(x=>getMonta(x.v)!=='ALTA'&&getMonta(x.v)!=='MEDIA');
+  return {geral,alta,media,severo,baixa};
 }
 
 /* ============ DASHBOARDS ============ */
@@ -2205,6 +2263,84 @@ function hbar(id,entries,color){
   if(!HASCHART())return null;
   return new Chart(document.getElementById(id),{type:'bar',data:{labels:entries.map(x=>x[0]),datasets:[{data:entries.map(x=>x[1]),backgroundColor:color,borderRadius:6,barThickness:'flex',maxBarThickness:24}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' '+c.parsed.x+' veiculo'+(c.parsed.x!==1?'s':'')}}},scales:{x:{beginAtZero:true,ticks:{color:PAL.txt2,font:{size:11},precision:0,stepSize:1},grid:{color:'rgba(35,57,92,.4)'}},y:{ticks:{color:'#e8eef7',font:{size:12,weight:'600'}},grid:{display:false}}}}});
 }
+function montaGradiente(ctx,area,dias,ativo){
+  const d=Number(dias)||0;
+  const a=ativo?1:.88;
+  let c1,c2;
+  if(d<10){
+    // verde vibrante: abaixo de 10 dias
+    c1='hsla(151,92%,'+(ativo?43:38)+'%,'+a+')';
+    c2='hsla(158,90%,'+(ativo?62:54)+'%,'+a+')';
+  }else if(d<=20){
+    // laranja vibrante: de 10 a 20 dias
+    const t=Math.max(0,Math.min(1,(d-10)/10));
+    const hue=Math.round(38-(10*t));
+    c1='hsla('+hue+',98%,'+(ativo?51:47)+'%,'+a+')';
+    c2='hsla('+(hue+5)+',97%,'+(ativo?64:57)+'%,'+a+')';
+  }else{
+    // acima de 20 dias: vai de vermelho vivo a vermelho cada vez mais intenso
+    const t=Math.max(0,Math.min(1,(d-20)/35));
+    const hue=Math.round(8-(8*t));
+    const l1=Math.round((ativo?55:51)-(10*t));
+    const l2=Math.round((ativo?66:60)-(13*t));
+    c1='hsla('+hue+',96%,'+l1+'%,'+a+')';
+    c2='hsla(0,94%,'+l2+'%,'+a+')';
+  }
+  if(!ctx||!area)return c2;
+  const g=ctx.createLinearGradient(area.left,0,area.right,0);
+  g.addColorStop(0,c1);
+  g.addColorStop(1,c2);
+  return g;
+}
+function chartTempoMonta(id,comp,activeKey){
+  if(!HASCHART())return null;
+  const keys=comp.map(x=>x[0]);
+  const medias=comp.map(x=>x[2]);
+  const cv=document.getElementById(id);
+  return new Chart(cv,{
+    type:'bar',
+    data:{
+      labels:comp.map(x=>x[1]),
+      datasets:[{
+        data:medias,
+        backgroundColor:(ctx)=>montaGradiente(ctx.chart.ctx,ctx.chart.chartArea,medias[ctx.dataIndex],keys[ctx.dataIndex]===activeKey),
+        borderColor:(ctx)=>keys[ctx.dataIndex]===activeKey?'rgba(255,255,255,.95)':'rgba(255,255,255,.14)',
+        borderWidth:(ctx)=>keys[ctx.dataIndex]===activeKey?2:1,
+        borderRadius:10,
+        borderSkipped:false,
+        maxBarThickness:34,
+        hoverBorderWidth:2,
+        hoverBorderColor:'#ffffff'
+      }]
+    },
+    options:{
+      indexAxis:'y',responsive:true,maintainAspectRatio:false,
+      animation:{duration:380,easing:'easeOutQuart'},
+      layout:{padding:{top:6,right:22,bottom:8,left:6}},
+      onClick:(evt,els)=>{
+        if(!els||!els.length)return;
+        const idx=els[0].index;
+        const sel=document.getElementById('m-tmp-filter');
+        if(sel){sel.value=keys[idx];renderDash();}
+      },
+      plugins:{
+        legend:{display:false},
+        tooltip:{
+          backgroundColor:'#0d1117',borderColor:'rgba(255,255,255,.12)',borderWidth:1,titleColor:'#f4f7fa',bodyColor:'#c4ccd6',padding:11,displayColors:false,
+          callbacks:{
+            title:c=>c[0].label,
+            label:c=>'Tempo medio: '+(c.raw??0)+' dia'+(c.raw===1?'':'s'),
+            afterLabel:c=>'Veiculos no grupo: '+comp[c.dataIndex][3]+' · clique para destacar'
+          }
+        }
+      },
+      scales:{
+        x:{beginAtZero:true,ticks:{color:'#93a0b0',font:{size:11},precision:0,callback:v=>v+'d'},grid:{color:'rgba(255,255,255,.06)',drawBorder:false},border:{display:false}},
+        y:{ticks:{color:'#d9e0e8',font:{size:12,weight:'600'},padding:10},grid:{display:false},border:{display:false}}
+      }
+    }
+  });
+}
 function renderDash(){
   updHeader();
   const isMensal=document.querySelector('.subnav button.active').dataset.d==='mensal';
@@ -2212,9 +2348,87 @@ function renderDash(){
   if(isMensal)renderMensal();else renderDiario();
 }
 const HASCHART=()=>typeof Chart!=='undefined';
+// filtros independentes dos quatro graficos principais
+const DASHF={
+  uf:{oper:[],proj:[],tipo:[],monta:[]},
+  proj:{oper:[],proj:[],tipo:[],monta:[]},
+  perfil:{oper:[],proj:[],tipo:[],monta:[]},
+  base:{oper:[],proj:[],tipo:[],monta:[]}
+};
+let dashFilterOpen='';
+function dashEsc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function dashOper(v){return isTransf(v)?'trans':'coleta';}
+function dashTipos(v){
+  if(v.status==='SEVERA')return ['severa'];
+  return (v.tipos_manut||'').split(',').map(x=>x.trim()).filter(Boolean);
+}
+function dashMonta(v){
+  const m=getMonta(v);
+  if(m==='ALTA')return 'alta';
+  if(m==='MEDIA')return 'media';
+  if(v.status!=='SEVERA')return 'baixa';
+  return '';
+}
+function passaDashFilter(x,key){
+  const f=DASHF[key],v=x.v;
+  if(!f)return true;
+  if(f.oper.length&&!f.oper.includes(dashOper(v)))return false;
+  if(f.proj.length&&!f.proj.includes(v.projeto||''))return false;
+  if(f.tipo.length&&!f.tipo.some(t=>dashTipos(v).includes(t)))return false;
+  if(f.monta.length&&!f.monta.includes(dashMonta(v)))return false;
+  return true;
+}
+function dashFilterCount(key){const f=DASHF[key];return f?f.oper.length+f.proj.length+f.tipo.length+f.monta.length:0;}
+function dashFiltroAplicar(man,key){return man.filter(x=>passaDashFilter(x,key));}
+function dashCheckGroup(key,fld,label,opts,extraClass){
+  const selected=DASHF[key][fld];
+  const rows=opts.map(o=>{
+    const val=Array.isArray(o)?o[0]:o,lab=Array.isArray(o)?o[1]:o;
+    return '<label class="dash-filter-opt"><input type="checkbox" data-df-key="'+key+'" data-df-field="'+fld+'" value="'+dashEsc(val)+'"'+(selected.includes(val)?' checked':'')+'><span title="'+dashEsc(lab)+'">'+dashEsc(lab)+'</span></label>';
+  }).join('');
+  return '<div class="dash-filter-group"><div class="dash-filter-group-title">'+label+'</div><div class="dash-filter-options'+(extraClass?' '+extraClass:'')+'">'+rows+'</div></div>';
+}
+function renderDashFilters(man){
+  const projetos=[...new Set(man.map(x=>x.v.projeto||'').filter(Boolean))].sort((a,b)=>a.localeCompare(b,'pt-BR'));
+  const defs={
+    oper:[['coleta','Coleta / Entrega'],['trans','Transferencia']],
+    tipo:[['corretiva','Corretiva'],['preventiva','Preventiva'],['severa','Severa']],
+    monta:[['alta','Alta Monta'],['media','Media Monta'],['baixa','Baixa Monta']]
+  };
+  ['uf','proj','perfil','base'].forEach(key=>{
+    const n=dashFilterCount(key),btn=document.querySelector('[data-df-btn="'+key+'"]'),badge=document.getElementById('df-badge-'+key),menu=document.getElementById('df-menu-'+key);
+    if(!btn||!menu)return;
+    btn.classList.toggle('has-filter',n>0);
+    btn.classList.toggle('open',dashFilterOpen===key);
+    if(badge)badge.textContent=n;
+    const projOpts=projetos.map(p=>[p,p]);
+    menu.classList.toggle('open',dashFilterOpen===key);
+    menu.innerHTML='<div class="dash-filter-top"><div><b>Filtros do grafico</b><br><span>Sem marcacao = todos</span></div><button class="dash-filter-clear" data-df-clear="'+key+'"'+(n?'':' disabled')+'>Limpar</button></div>'
+      +dashCheckGroup(key,'oper','Tipo de operacao',defs.oper)
+      +dashCheckGroup(key,'proj','Projeto',projOpts,'projects')
+      +dashCheckGroup(key,'tipo','Tipo de manutencao',defs.tipo)
+      +dashCheckGroup(key,'monta','Monta',defs.monta)
+      +'<div class="dash-filter-note">Voce pode combinar varios filtros. As selecoes deste grafico nao alteram os demais.</div>';
+    btn.onclick=(e)=>{e.stopPropagation();dashFilterOpen=dashFilterOpen===key?'':key;renderDashFilters(man);};
+    menu.onclick=e=>e.stopPropagation();
+    menu.querySelectorAll('input[data-df-key]').forEach(inp=>inp.onchange=()=>{
+      const f=DASHF[inp.dataset.dfKey][inp.dataset.dfField],val=inp.value;
+      if(inp.checked){if(!f.includes(val))f.push(val);}else{const i=f.indexOf(val);if(i>=0)f.splice(i,1);}
+      renderDash();
+    });
+    const clr=menu.querySelector('[data-df-clear]');
+    if(clr)clr.onclick=()=>{DASHF[key]={oper:[],proj:[],tipo:[],monta:[]};renderDash();};
+  });
+}
+if(!window.__dashFilterOutsideBound){
+  window.__dashFilterOutsideBound=true;
+  document.addEventListener('click',e=>{
+    if(dashFilterOpen&&!e.target.closest('.dash-filter-panel')){dashFilterOpen='';document.querySelectorAll('.dash-filter-menu').forEach(m=>m.classList.remove('open'));document.querySelectorAll('.dash-filter-btn').forEach(b=>b.classList.remove('open'));}
+  });
+}
 function renderMensal(){
   const tot=grand(),man=manAll(),op=tot-man.length;
-  const grupos=gruposTempoMonta(man),alta=grupos.alta,media=grupos.media,severo=grupos.severo,demais=grupos.demais;
+  const grupos=gruposTempoMonta(man),alta=grupos.alta,media=grupos.media,severo=grupos.severo,baixa=grupos.baixa;
   document.getElementById('m-frota').textContent=tot;
   document.getElementById('m-disp').textContent=(tot?Math.round(op/tot*100):0)+'%';
   document.getElementById('m-disp-d').textContent=op+' veiculos rodando';
@@ -2227,48 +2441,43 @@ function renderMensal(){
   document.getElementById('m-media-d').textContent=media.length+' de '+man.length+' veiculos';
 
   const tf=document.getElementById('m-tmp-filter'),tk=tf?tf.value:'geral';
-  const nomes={geral:'Geral (sem severos)',alta:'Alta Monta',media:'Media Monta',severo:'Severo',demais:'Demais'};
+  const nomes={geral:'Geral',alta:'Alta Monta',media:'Média Monta',severo:'Severo',baixa:'Baixa Monta'};
   const sel=grupos[tk]||grupos.geral,res=mediaDias(sel);
   document.getElementById('m-tmp').textContent=(res.media===null?0:res.media)+'d';
-  document.getElementById('m-tmp-d').textContent=nomes[tk]+' · '+sel.length+' veiculo'+(sel.length!==1?'s':'')+(res.validos<sel.length?' · '+res.validos+' com data':'');
+  document.getElementById('m-tmp-d').textContent=nomes[tk]+' · '+sel.length+' veiculo'+(sel.length!==1?'s':'')+(tk==='geral'?' · severos fora da media':'')+(res.validos<sel.length?' · '+res.validos+' com data':'');
 
-  const comp=[['Geral s/ severos',grupos.geral,PAL.blue],['Alta Monta',alta,PAL.red],['Media Monta',media,PAL.amber],['Severo',severo,PAL.purple],['Demais',demais,PAL.green]];
-  const compMed=comp.map(x=>mediaDias(x[1]));
-  if(compMed.some(x=>x.media!==null)&&HASCHART()){
-    const chartColors=comp.map((x,i)=>i===3?'rgba(224,100,95,.88)':(i===1?'rgba(139,149,163,.95)':(i===2?'rgba(196,204,214,.82)':'rgba(108,124,145,.78)')));
-    charts.tmpClass=new Chart(document.getElementById('ch-tmp-class'),{
-      type:'bar',
-      data:{labels:comp.map(x=>x[0]),datasets:[{data:compMed.map(x=>x.media),backgroundColor:chartColors,borderColor:chartColors,borderWidth:1,borderRadius:3,borderSkipped:false,maxBarThickness:30}]},
-      options:{
-        indexAxis:'y',responsive:true,maintainAspectRatio:false,
-        layout:{padding:{top:4,right:18,bottom:4,left:4}},
-        plugins:{legend:{display:false},tooltip:{backgroundColor:'#0d1117',borderColor:'rgba(255,255,255,.12)',borderWidth:1,titleColor:'#f4f7fa',bodyColor:'#c4ccd6',padding:11,displayColors:false,callbacks:{title:c=>c[0].label,label:c=>'Tempo medio: '+(c.raw??0)+' dia'+(c.raw===1?'':'s'),afterLabel:c=>'Veiculos no grupo: '+comp[c.dataIndex][1].length}}},
-        scales:{
-          x:{beginAtZero:true,ticks:{color:'#93a0b0',font:{size:11},precision:0,callback:v=>v+'d'},grid:{color:'rgba(255,255,255,.055)',drawBorder:false},border:{display:false}},
-          y:{ticks:{color:'#d9e0e8',font:{size:12,weight:'600'},padding:8},grid:{display:false},border:{display:false}}
-        }
-      }
-    });
+  const comp=[
+    ['geral','Geral',mediaDias(grupos.geral).media,grupos.geral.length],
+    ['alta','Alta Monta',mediaDias(alta).media,alta.length],
+    ['media','Média Monta',mediaDias(media).media,media.length],
+    ['severo','Severo',mediaDias(severo).media,severo.length],
+    ['baixa','Baixa Monta',mediaDias(baixa).media,baixa.length]
+  ];
+  if(comp.some(x=>x[2]!==null)&&HASCHART()){
+    charts.tmpClass=chartTempoMonta('ch-tmp-class',comp,tk);
   }else emptyCanvas('ch-tmp-class');
+  // filtros independentes para cada visual
+  renderDashFilters(man);
+  const manUF=dashFiltroAplicar(man,'uf'),manProj=dashFiltroAplicar(man,'proj'),manPerfil=dashFiltroAplicar(man,'perfil'),manBase=dashFiltroAplicar(man,'base');
   // por estado
-  const byUF={};man.forEach(x=>byUF[x.uf]=(byUF[x.uf]||0)+1);
+  const byUF={};manUF.forEach(x=>byUF[x.uf]=(byUF[x.uf]||0)+1);
   const ufs=Object.entries(byUF).sort((a,b)=>b[1]-a[1]).slice(0,10);
   charts.uf=hbar('ch-uf',ufs,PAL.blue);
   // por projeto
-  const byPj={};man.forEach(x=>byPj[x.v.projeto]=(byPj[x.v.projeto]||0)+1);
+  const byPj={};manProj.forEach(x=>byPj[x.v.projeto]=(byPj[x.v.projeto]||0)+1);
   const pjs=Object.entries(byPj).sort((a,b)=>b[1]-a[1]);
   const pjcol=[PAL.blue,PAL.amber,PAL.green,PAL.purple,PAL.teal,PAL.pink,PAL.red,PAL.gold,PAL.blue2];
   if(pjs.length&&HASCHART())charts.proj=new Chart(document.getElementById('ch-proj'),{type:'doughnut',data:{labels:pjs.map(x=>x[0]),datasets:[{data:pjs.map(x=>x[1]),backgroundColor:pjcol,borderColor:'#13243d',borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,cutout:'62%',plugins:{legend:{position:'right',labels:{color:PAL.txt2,font:{size:11},boxWidth:12,padding:10}}}}});
   else emptyCanvas('ch-proj');
   // por perfil
-  const byPf={};man.forEach(x=>byPf[x.v.perfil]=(byPf[x.v.perfil]||0)+1);
+  const byPf={};manPerfil.forEach(x=>byPf[x.v.perfil]=(byPf[x.v.perfil]||0)+1);
   const pfs=Object.entries(byPf).sort((a,b)=>b[1]-a[1]).slice(0,10);
   charts.perfil=hbar('ch-perfil',pfs,PAL.amber);
   // ranking base
-  const byB={};man.forEach(x=>{const k=x.v.base;if(!byB[k])byB[k]={base:k,uf:x.uf,cidade:x.v.cidade,n:0};byB[k].n++;});
+  const byB={};manBase.forEach(x=>{const k=manutBaseKey(x.v);if(!byB[k])byB[k]={base:k,uf:x.uf,cidade:manutCidade(x.v),n:0};byB[k].n++;});
   const bs=Object.values(byB).sort((a,b)=>b.n-a.n);
   const mx=bs.length?bs[0].n:1;
-  document.getElementById('rank-base').innerHTML=bs.length?'<table class="rank"><thead><tr><th class="rk">#</th><th>Base</th><th>Estado</th><th class="barcell">Parados</th><th>Qtd</th></tr></thead><tbody>'+bs.map((b,i)=>'<tr><td class="rk">'+(i+1)+'</td><td><b>'+b.base+'</b><br><span style="color:var(--txt3);font-size:11px">'+b.cidade+'</span></td><td>'+b.uf+'</td><td class="barcell"><div class="minibar"><span style="width:'+Math.round(b.n/mx*100)+'%;background:'+PAL.amber+'"></span></div></td><td><b>'+b.n+'</b></td></tr>').join('')+'</tbody></table>':'<div class="empty">Nenhum veiculo em manutencao.</div>';
+  document.getElementById('rank-base').innerHTML=bs.length?'<table class="rank"><thead><tr><th class="rk">#</th><th>Base</th><th>Estado</th><th class="barcell">Parados</th><th>Qtd</th></tr></thead><tbody>'+bs.map((b,i)=>'<tr><td class="rk">'+(i+1)+'</td><td><b>'+b.base+'</b><br><span style="color:var(--txt3);font-size:11px">'+b.cidade+'</span></td><td>'+b.uf+'</td><td class="barcell"><div class="minibar"><span style="width:'+Math.round(b.n/mx*100)+'%;background:'+PAL.amber+'"></span></div></td><td><b>'+b.n+'</b></td></tr>').join('')+'</tbody></table>':'<div class="empty">Nenhum veiculo em manutencao com estes filtros.</div>';
   // ranking de reincidencia (historico)
   const byPlaca={};HIST.forEach(h=>{if(!byPlaca[h.placa])byPlaca[h.placa]={placa:h.placa,vezes:0,dias:0};byPlaca[h.placa].vezes++;byPlaca[h.placa].dias+=(h.dias||(h.saida?0:diffDias(h.entrada,today())||0));});
   const reinc=Object.values(byPlaca).sort((a,b)=>b.vezes-a.vezes||b.dias-a.dias).slice(0,12);
@@ -2341,7 +2550,6 @@ function renderManut(){
   document.getElementById('mm-tot').textContent=scope.length;
   document.getElementById('mm-man').textContent=man.length;
   const libhoje=scope.filter(x=>x.v.status!=='OK'&&x.v.prev===today());
-  document.getElementById('mm-libhoje').textContent=libhoje.length;
   document.getElementById('mm-late').textContent=late.length;
   // KPIs por tipo de manutencao
   const hasTipo=(v,t)=>(v.tipos_manut||'').split(',').includes(t);
@@ -2352,15 +2560,16 @@ function renderManut(){
   // falta conferencia = pendentes na janela de conferencia (nao conferidos hoje)
   const conf=scope.filter(x=>x.v.status!=='OK'&&!confHoje(x.v));
   const el=id=>document.getElementById(id);
-  if(el('mm-corr'))el('mm-corr').textContent=corr.length;
-  if(el('mm-prevc'))el('mm-prevc').textContent=prevc.length;
-  if(el('mm-sevc'))el('mm-sevc').textContent=sevc.length;
   if(el('mm-conf'))el('mm-conf').textContent=conf.length;
   const pctMan=n=>man.length?Math.round(n/man.length*100):0;
-  if(el('mm-libhoje-pct'))el('mm-libhoje-pct').textContent=pctMan(libhoje.length)+'% do total em manutencao';
-  if(el('mm-corr-pct'))el('mm-corr-pct').textContent=pctMan(corr.length)+'% do total em manutencao';
-  if(el('mm-prevc-pct'))el('mm-prevc-pct').textContent=pctMan(prevc.length)+'% do total em manutencao';
-  if(el('mm-sevc-pct'))el('mm-sevc-pct').textContent=pctMan(sevc.length)+'% do total em manutencao';
+  if(el('mm-libhoje'))el('mm-libhoje').textContent=pctMan(libhoje.length)+'%';
+  if(el('mm-corr'))el('mm-corr').textContent=pctMan(corr.length)+'%';
+  if(el('mm-prevc'))el('mm-prevc').textContent=pctMan(prevc.length)+'%';
+  if(el('mm-sevc'))el('mm-sevc').textContent=pctMan(sevc.length)+'%';
+  if(el('mm-libhoje-count'))el('mm-libhoje-count').textContent=libhoje.length+' de '+man.length+' veiculos em manutencao';
+  if(el('mm-corr-count'))el('mm-corr-count').textContent=corr.length+' de '+man.length+' veiculos em manutencao';
+  if(el('mm-prevc-count'))el('mm-prevc-count').textContent=prevc.length+' de '+man.length+' veiculos em manutencao';
+  if(el('mm-sevc-count'))el('mm-sevc-count').textContent=sevc.length+' de '+man.length+' veiculos em manutencao';
   // destaque do card ativo + mensagem de filtro
   document.querySelectorAll('.mkpi-click').forEach(c=>c.classList.toggle('mkpi-on',c.dataset.mf===mfCardFilter));
   const rotulos={atrasado:'atrasados',corretiva:'em corretiva',preventiva:'em preventiva',severa:'em estado severo',conferencia:'pendentes de conferencia',libhoje:'com liberacao hoje'};
