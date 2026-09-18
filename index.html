@@ -227,6 +227,17 @@ canvas{max-width:100%}
 .chart-box{position:relative;height:260px}
 .chart-box.tall{height:300px}
 
+/* recolher/expandir grafico de tempo medio */
+.tmp-chart-panel .panel-t{gap:12px}
+.tmp-chart-toggle{margin-left:auto;width:32px;height:32px;border-radius:9px;border:1px solid var(--line);background:var(--bg2);color:var(--txt2);display:inline-flex;align-items:center;justify-content:center;cursor:pointer;transition:.18s ease;flex:0 0 auto}
+.tmp-chart-toggle:hover{background:var(--surf2);color:var(--txt);border-color:#3a414a}
+.tmp-chart-toggle .ti{font-size:17px;transition:transform .2s ease}
+.tmp-chart-panel.is-collapsed .tmp-chart-toggle .ti{transform:rotate(-90deg)}
+.tmp-chart-body{overflow:hidden}
+.tmp-chart-panel.is-collapsed .tmp-chart-body{display:none}
+.tmp-chart-panel.is-collapsed{padding-bottom:16px}
+.tmp-chart-panel.is-collapsed .panel-t{margin-bottom:0}
+
 /* filtros individuais dos graficos do dashboard */
 .dash-filter-panel{position:relative;overflow:visible}
 .dash-filter-title{display:flex;align-items:center;justify-content:space-between;gap:12px}
@@ -919,7 +930,13 @@ body.somente-consulta .avm-div{display:none!important}
         </div>
       </div>
     </div>
-    <div class="panel"><div class="panel-t">Tempo medio parado por classificacao</div><div class="panel-sub">Verde: menos de 10 dias · Laranja: 10 a 20 dias · Vermelho: acima de 20 dias — clique na barra para destacar</div><div class="chart-box"><canvas id="ch-tmp-class"></canvas></div></div>
+    <div class="panel tmp-chart-panel" id="tmp-chart-panel">
+      <div class="panel-t"><span>Tempo medio parado por classificacao</span><button class="tmp-chart-toggle" id="tmp-chart-toggle" type="button" title="Ocultar grafico" aria-label="Ocultar grafico" aria-expanded="true"><i class="ti ti-chevron-down"></i></button></div>
+      <div class="tmp-chart-body" id="tmp-chart-body">
+        <div class="panel-sub">Verde: menos de 10 dias · Laranja: 10 a 20 dias · Vermelho: acima de 20 dias — clique na barra para destacar</div>
+        <div class="chart-box"><canvas id="ch-tmp-class"></canvas></div>
+      </div>
+    </div>
     <div class="grid-2">
       <div class="panel dash-filter-panel" data-df-panel="uf"><div class="panel-t dash-filter-title"><span>Manutencoes por estado</span><button class="dash-filter-btn" data-df-btn="uf" title="Filtrar este grafico"><i class="ti ti-filter"></i><span class="df-badge" id="df-badge-uf">0</span><span class="df-arrow">&#9662;</span></button></div><div class="panel-sub">Veiculos parados em cada UF</div><div class="dash-filter-menu" id="df-menu-uf"></div><div class="chart-box"><canvas id="ch-uf"></canvas></div></div>
       <div class="panel dash-filter-panel" data-df-panel="proj"><div class="panel-t dash-filter-title"><span>Manutencoes por projeto</span><button class="dash-filter-btn" data-df-btn="proj" title="Filtrar este grafico"><i class="ti ti-filter"></i><span class="df-badge" id="df-badge-proj">0</span><span class="df-arrow">&#9662;</span></button></div><div class="panel-sub">Distribuicao entre os contratos</div><div class="dash-filter-menu" id="df-menu-proj"></div><div class="chart-box"><canvas id="ch-proj"></canvas></div></div>
@@ -2282,6 +2299,27 @@ function gruposTempoMonta(man){
 }
 
 /* ============ DASHBOARDS ============ */
+const TMP_CHART_HIDE_KEY='lauto_tmp_chart_hidden';
+let tmpChartHidden=localStorage.getItem(TMP_CHART_HIDE_KEY)==='1';
+function syncTmpChartVisibility(){
+  const panel=document.getElementById('tmp-chart-panel'),btn=document.getElementById('tmp-chart-toggle');
+  if(!panel||!btn)return;
+  panel.classList.toggle('is-collapsed',tmpChartHidden);
+  btn.setAttribute('aria-expanded',tmpChartHidden?'false':'true');
+  btn.setAttribute('aria-label',tmpChartHidden?'Mostrar grafico':'Ocultar grafico');
+  btn.title=tmpChartHidden?'Mostrar grafico':'Ocultar grafico';
+}
+function toggleTmpChart(){
+  tmpChartHidden=!tmpChartHidden;
+  localStorage.setItem(TMP_CHART_HIDE_KEY,tmpChartHidden?'1':'0');
+  syncTmpChartVisibility();
+  if(tmpChartHidden){
+    if(charts.tmpClass){try{charts.tmpClass.destroy()}catch(e){}delete charts.tmpClass;}
+  }else{
+    renderDash();
+    syncTmpChartVisibility();
+  }
+}
 let charts={};
 function destroyCharts(){Object.values(charts).forEach(c=>{try{c.destroy()}catch(e){}});charts={};}
 const chOpts={responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:PAL.txt2,font:{size:11}},grid:{display:false}},y:{ticks:{color:PAL.txt2,font:{size:11}},grid:{color:'rgba(35,57,92,.5)'}}}};
@@ -2495,9 +2533,11 @@ function renderMensal(){
     ['severo','Severo',mediasTempo.severo.media,severo.length],
     ['baixa','Baixa Monta - Preventivas inclusas',mediasTempo.baixa.media,baixa.length]
   ];
-  if(comp.some(x=>x[2]!==null)&&HASCHART()){
-    charts.tmpClass=chartTempoMonta('ch-tmp-class',comp,tmpActiveKey);
-  }else emptyCanvas('ch-tmp-class');
+  if(!tmpChartHidden){
+    if(comp.some(x=>x[2]!==null)&&HASCHART()){
+      charts.tmpClass=chartTempoMonta('ch-tmp-class',comp,tmpActiveKey);
+    }else emptyCanvas('ch-tmp-class');
+  }
   // filtros independentes para cada visual
   renderDashFilters(man);
   const manUF=dashFiltroAplicar(man,'uf'),manProj=dashFiltroAplicar(man,'proj'),manPerfil=dashFiltroAplicar(man,'perfil'),manBase=dashFiltroAplicar(man,'base');
@@ -3141,7 +3181,10 @@ function maybeAutoConf(){
 }
 
 function refreshAll(){updHeader();updateConfBadge();if(document.body.classList.contains('somente-consulta')){const at=document.querySelector('#cons-tabs .tab.active');const cv=at?at.dataset.cv:'mapa';if(cv==='mapa')refreshCons();else if(cv==='veic')renderVeic();else if(cv==='prev')renderPrev();return;}const av=id=>document.getElementById('view-'+id).classList.contains('active');if(av('dash'))renderDash();if(av('mapa')){drawMap();renderSP();}if(av('manut'))renderManut();if(av('veic'))renderVeic();if(document.getElementById('cmodal').classList.contains('open')&&!document.querySelector('.c-edit-box'))renderConf();}
+document.getElementById('tmp-chart-toggle')?.addEventListener('click',toggleTmpChart);
+syncTmpChartVisibility();
 updHeader();renderDash();
+syncTmpChartVisibility();
 loadFromSupabase();
 
 </script>
