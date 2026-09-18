@@ -198,6 +198,7 @@ header{display:flex;align-items:center;justify-content:space-between;padding:24p
 .dash-select{width:100%;margin-top:10px;padding:7px 9px;background:var(--bg2);border:1px solid var(--line);color:var(--txt2);border-radius:8px;font-size:11.5px;font-weight:600;cursor:pointer}
 .dash-select:focus{outline:none;border-color:var(--blue2)}
 
+
 /* resumo de tempo medio — todos os grupos visiveis */
 .kpi.tmp-summary{grid-column:1/-1;padding:20px 22px 18px;overflow:visible}
 .tmp-summary .lbl{margin-bottom:14px}
@@ -910,15 +911,15 @@ body.somente-consulta .avm-div{display:none!important}
       <div class="kpi b-purple tmp-summary">
         <div class="lbl"><i class="ti ti-clock-exclamation"></i> Tempo medio parado</div>
         <div class="tmp-metrics">
-          <div class="tmp-metric tm-geral"><div class="tm-label">Geral</div><div class="tm-val" id="m-tmp-geral">0d</div><div class="tm-sub" id="m-tmp-geral-d">0 veiculos · sem severos</div></div>
+          <div class="tmp-metric tm-geral"><div class="tm-label">Geral</div><div class="tm-val" id="m-tmp-geral">0d</div><div class="tm-sub" id="m-tmp-geral-d">0 veiculos</div></div>
           <div class="tmp-metric tm-alta"><div class="tm-label">Alta Monta</div><div class="tm-val" id="m-tmp-alta">0d</div><div class="tm-sub" id="m-tmp-alta-d">0 veiculos</div></div>
           <div class="tmp-metric tm-media"><div class="tm-label">Media Monta</div><div class="tm-val" id="m-tmp-media">0d</div><div class="tm-sub" id="m-tmp-media-d">0 veiculos</div></div>
-          <div class="tmp-metric tm-baixa"><div class="tm-label">Baixa Monta</div><div class="tm-val" id="m-tmp-baixa">0d</div><div class="tm-sub" id="m-tmp-baixa-d">0 veiculos</div></div>
+          <div class="tmp-metric tm-baixa"><div class="tm-label">Baixa Monta - Preventivas inclusas</div><div class="tm-val" id="m-tmp-baixa">0d</div><div class="tm-sub" id="m-tmp-baixa-d">0 veiculos</div></div>
           <div class="tmp-metric tm-severo"><div class="tm-label">Severo</div><div class="tm-val" id="m-tmp-severo">0d</div><div class="tm-sub" id="m-tmp-severo-d">0 veiculos</div></div>
         </div>
       </div>
     </div>
-    <div class="panel"><div class="panel-t">Tempo medio parado por classificacao</div><div class="panel-sub">Verde: menos de 10 dias · Laranja: 10 a 20 dias · Vermelho: acima de 20 dias</div><div class="chart-box"><canvas id="ch-tmp-class"></canvas></div></div>
+    <div class="panel"><div class="panel-t">Tempo medio parado por classificacao</div><div class="panel-sub">Verde: menos de 10 dias · Laranja: 10 a 20 dias · Vermelho: acima de 20 dias — clique na barra para destacar</div><div class="chart-box"><canvas id="ch-tmp-class"></canvas></div></div>
     <div class="grid-2">
       <div class="panel dash-filter-panel" data-df-panel="uf"><div class="panel-t dash-filter-title"><span>Manutencoes por estado</span><button class="dash-filter-btn" data-df-btn="uf" title="Filtrar este grafico"><i class="ti ti-filter"></i><span class="df-badge" id="df-badge-uf">0</span><span class="df-arrow">&#9662;</span></button></div><div class="panel-sub">Veiculos parados em cada UF</div><div class="dash-filter-menu" id="df-menu-uf"></div><div class="chart-box"><canvas id="ch-uf"></canvas></div></div>
       <div class="panel dash-filter-panel" data-df-panel="proj"><div class="panel-t dash-filter-title"><span>Manutencoes por projeto</span><button class="dash-filter-btn" data-df-btn="proj" title="Filtrar este grafico"><i class="ti ti-filter"></i><span class="df-badge" id="df-badge-proj">0</span><span class="df-arrow">&#9662;</span></button></div><div class="panel-sub">Distribuicao entre os contratos</div><div class="dash-filter-menu" id="df-menu-proj"></div><div class="chart-box"><canvas id="ch-proj"></canvas></div></div>
@@ -2271,16 +2272,17 @@ function montaBadge(v){const m=getMonta(v);if(m==='ALTA')return '<span class="tp
 function mediaDias(lista){const ds=lista.map(x=>daysIn(x.v)).filter(d=>d!==null);return {media:ds.length?Math.round(ds.reduce((a,b)=>a+b,0)/ds.length):null,validos:ds.length};}
 function gruposTempoMonta(man){
   const severo=man.filter(x=>x.v.status==='SEVERA');
-  const geral=man.filter(x=>x.v.status!=='SEVERA'); // regra: severos nao entram no tempo medio Geral
-  const alta=geral.filter(x=>getMonta(x.v)==='ALTA');
-  const media=geral.filter(x=>getMonta(x.v)==='MEDIA');
-  const baixa=geral.filter(x=>getMonta(x.v)!=='ALTA'&&getMonta(x.v)!=='MEDIA');
+  const geral=man.slice(); // Geral inclui todos os veiculos em manutencao, inclusive severos
+  // Alta e Media sao flags independentes do status Severo: contam todos os veiculos sinalizados com a monta.
+  const alta=man.filter(x=>getMonta(x.v)==='ALTA');
+  const media=man.filter(x=>getMonta(x.v)==='MEDIA');
+  // Baixa = restante sem Alta, sem Media e sem Severo; preventivas sem flag entram aqui.
+  const baixa=man.filter(x=>x.v.status!=='SEVERA'&&getMonta(x.v)!=='ALTA'&&getMonta(x.v)!=='MEDIA');
   return {geral,alta,media,severo,baixa};
 }
 
 /* ============ DASHBOARDS ============ */
 let charts={};
-let tempoMontaAtivo='geral';
 function destroyCharts(){Object.values(charts).forEach(c=>{try{c.destroy()}catch(e){}});charts={};}
 const chOpts={responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:PAL.txt2,font:{size:11}},grid:{display:false}},y:{ticks:{color:PAL.txt2,font:{size:11}},grid:{color:'rgba(35,57,92,.5)'}}}};
 function emptyCanvas(id){const cv=document.getElementById(id);const r=cv.parentElement.getBoundingClientRect();cv.width=r.width;cv.height=r.height;const ctx=cv.getContext('2d');ctx.clearRect(0,0,cv.width,cv.height);ctx.fillStyle='#6b7f9e';ctx.font='13px Inter,sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('Sem dados ainda',cv.width/2,cv.height/2-10);ctx.fillStyle='#4a5b75';ctx.font='12px Inter,sans-serif';ctx.fillText('sinalize manutencoes para alimentar',cv.width/2,cv.height/2+12);}
@@ -2318,6 +2320,7 @@ function montaGradiente(ctx,area,dias,ativo){
   g.addColorStop(1,c2);
   return g;
 }
+let tmpActiveKey='geral';
 function chartTempoMonta(id,comp,activeKey){
   if(!HASCHART())return null;
   const keys=comp.map(x=>x[0]);
@@ -2346,7 +2349,7 @@ function chartTempoMonta(id,comp,activeKey){
       onClick:(evt,els)=>{
         if(!els||!els.length)return;
         const idx=els[0].index;
-        tempoMontaAtivo=keys[idx]||'geral';
+        tmpActiveKey=keys[idx]||'geral';
         renderDash();
       },
       plugins:{
@@ -2419,7 +2422,7 @@ function renderDashFilters(man){
   const defs={
     oper:[['coleta','Coleta / Entrega'],['trans','Transferencia']],
     tipo:[['corretiva','Corretiva'],['preventiva','Preventiva'],['severa','Severa']],
-    monta:[['alta','Alta Monta'],['media','Media Monta'],['baixa','Baixa Monta']]
+    monta:[['alta','Alta Monta'],['media','Media Monta'],['baixa','Baixa Monta - Preventivas inclusas']]
   };
   ['uf','proj','perfil','base'].forEach(key=>{
     const n=dashFilterCount(key),btn=document.querySelector('[data-df-btn="'+key+'"]'),badge=document.getElementById('df-badge-'+key),menu=document.getElementById('df-menu-'+key);
@@ -2466,33 +2469,34 @@ function renderMensal(){
   document.getElementById('m-media').textContent=pctMedia+'%';
   document.getElementById('m-media-d').textContent=media.length+' de '+man.length+' veiculos';
 
-  const tempos={
+  const mediasTempo={
     geral:mediaDias(grupos.geral),
     alta:mediaDias(alta),
     media:mediaDias(media),
     baixa:mediaDias(baixa),
     severo:mediaDias(severo)
   };
-  const setTempo=(key,lista,extra='')=>{
-    const r=tempos[key],el=document.getElementById('m-tmp-'+key),det=document.getElementById('m-tmp-'+key+'-d');
-    if(el)el.textContent=(r.media===null?0:r.media)+'d';
-    if(det)det.textContent=lista.length+' veiculo'+(lista.length!==1?'s':'')+extra+(r.validos<lista.length?' · '+r.validos+' com data':'');
+  const setTempo=(key,lista,extra)=>{
+    const r=mediasTempo[key];
+    const val=document.getElementById('m-tmp-'+key),sub=document.getElementById('m-tmp-'+key+'-d');
+    if(val)val.textContent=(r.media===null?0:r.media)+'d';
+    if(sub)sub.textContent=lista.length+' veiculo'+(lista.length!==1?'s':'')+(extra||'')+(r.validos<lista.length?' · '+r.validos+' com data':'');
   };
-  setTempo('geral',grupos.geral,' · sem severos');
-  setTempo('alta',alta);
-  setTempo('media',media);
-  setTempo('baixa',baixa);
-  setTempo('severo',severo);
+  setTempo('geral',grupos.geral,'');
+  setTempo('alta',alta,'');
+  setTempo('media',media,'');
+  setTempo('baixa',baixa,'');
+  setTempo('severo',severo,'');
 
   const comp=[
-    ['geral','Geral',tempos.geral.media,grupos.geral.length],
-    ['alta','Alta Monta',tempos.alta.media,alta.length],
-    ['media','Média Monta',tempos.media.media,media.length],
-    ['severo','Severo',tempos.severo.media,severo.length],
-    ['baixa','Baixa Monta',tempos.baixa.media,baixa.length]
+    ['geral','Geral',mediasTempo.geral.media,grupos.geral.length],
+    ['alta','Alta Monta',mediasTempo.alta.media,alta.length],
+    ['media','Média Monta',mediasTempo.media.media,media.length],
+    ['severo','Severo',mediasTempo.severo.media,severo.length],
+    ['baixa','Baixa Monta - Preventivas inclusas',mediasTempo.baixa.media,baixa.length]
   ];
   if(comp.some(x=>x[2]!==null)&&HASCHART()){
-    charts.tmpClass=chartTempoMonta('ch-tmp-class',comp,tempoMontaAtivo);
+    charts.tmpClass=chartTempoMonta('ch-tmp-class',comp,tmpActiveKey);
   }else emptyCanvas('ch-tmp-class');
   // filtros independentes para cada visual
   renderDashFilters(man);
