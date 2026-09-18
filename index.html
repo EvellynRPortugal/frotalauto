@@ -410,6 +410,7 @@ body.somente-consulta .avm-div{display:none!important}
 .pv-alert{padding:12px 16px;border-radius:11px;font-size:13px;margin:14px 0;line-height:1.5}
 .pv-alert.warn{background:rgba(224,169,74,.12);border:1px solid rgba(224,169,74,.4);color:#e8c583}
 .pv-alert.err{background:rgba(224,100,95,.12);border:1px solid rgba(224,100,95,.4);color:#f3a8a3}
+.pv-alert.ok{background:rgba(57,181,126,.10);border:1px solid rgba(57,181,126,.34);color:#8edbb8}
 .pv-imports-title{font-size:11px;text-transform:uppercase;letter-spacing:.7px;color:var(--txt3);font-weight:700;margin:18px 0 10px}
 .pv-imports-list{display:flex;flex-direction:column;gap:8px}
 .pv-noimp{font-size:13px;color:var(--txt3)}
@@ -1437,6 +1438,18 @@ async function loadPrevImports(){
   }catch(e){console.warn('load prev',e);atualizarStatusEmailSync('erro');}
 }
 // le o arquivo Excel e retorna array de linhas normalizadas
+function prevNormHeader(v){
+  return String(v??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().toLowerCase().replace(/\s+/g,' ');
+}
+function prevFindCol(head,exatos=[],contem=[]){
+  for(const nome of exatos){const i=head.findIndex(c=>c===nome);if(i>=0)return i;}
+  for(const trecho of contem){const i=head.findIndex(c=>c.includes(trecho));if(i>=0)return i;}
+  return -1;
+}
+function prevNormUnidade(v){return String(v??'').trim().replace(/\s+/g,' ').toUpperCase();}
+function prevNormTipoRota(v){
+  return String(v??'').trim().toUpperCase().replace(/\\/g,'/').replace(/\s+/g,' ');
+}
 function parseExcelPreventivas(file){
   return new Promise((resolve,reject)=>{
     const rd=new FileReader();
@@ -1445,21 +1458,36 @@ function parseExcelPreventivas(file){
         const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});
         const ws=wb.Sheets[wb.SheetNames[0]];
         const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
-        // acha o cabecalho (linha com "Placa")
-        let hi=rows.findIndex(r=>r.some(c=>String(c).trim().toLowerCase()==='placa'));
-        if(hi<0)hi=0;
-        const head=rows[hi].map(c=>String(c).trim().toLowerCase());
-        const iPlaca=head.findIndex(c=>c==='placa');
-        const iStatus=head.findIndex(c=>c==='status');
-        const iUnid=head.findIndex(c=>c.includes('unidade'));
-        const iCat=head.findIndex(c=>c.includes('categoria'));
+        // procura uma linha de cabecalho que contenha alguma coluna de placa
+        let hi=rows.findIndex(r=>r.some(c=>{const h=prevNormHeader(c);return h==='placa'||h.includes('placa veiculo')||h.includes('placa do veiculo');}));
+        if(hi<0)throw new Error('Coluna de placa nao encontrada no relatorio.');
+        const head=rows[hi].map(prevNormHeader);
+        const iPlaca=prevFindCol(head,['placa'],['placa veiculo','placa do veiculo']);
+        const iStatus=prevFindCol(head,['status','situacao'],['status preventiva','status da preventiva','situacao preventiva','situacao da preventiva']);
+        const iUnid=prevFindCol(head,['unidade','base','filial'],['unidade','base operacional','filial']);
+        const iCat=prevFindCol(head,['categoria'],['categoria']);
+        const iTipoRota=prevFindCol(head,['tipo de rota','tipo rota','operacao'],['tipo de rota','tipo rota','operacao']);
+        if(iPlaca<0)throw new Error('Coluna de placa nao encontrada no relatorio.');
+        if(iStatus<0)throw new Error('Coluna de status/situacao da preventiva nao encontrada no relatorio.');
         const out=[];
+        let ultimaUnidade='';
         for(let r=hi+1;r<rows.length;r++){
-          const row=rows[r];const placa=String(row[iPlaca]||'').trim().toUpperCase().replace(/[^A-Z0-9]/g,'');
+          const row=rows[r];
+          // Alguns relatorios usam celulas mescladas: a unidade aparece so na primeira linha do bloco.
+          // Guardamos a ultima unidade informada para as linhas seguintes do mesmo bloco.
+          const unidadeRaw=iUnid>=0?String(row[iUnid]||'').trim():'';
+          if(unidadeRaw)ultimaUnidade=unidadeRaw;
+          const placa=String(row[iPlaca]||'').trim().toUpperCase().replace(/[^A-Z0-9]/g,'');
           // placa valida = exatamente 7 caracteres alfanumericos (ignora rodapes/filtros do excel)
           if(placa.length!==7)continue;
           if(!/^[A-Z]{3}[0-9][0-9A-Z][0-9]{2}$/.test(placa))continue;
-          out.push({placa,status:String(row[iStatus]||'').trim(),unidade:String(row[iUnid]||'').trim(),categoria:iCat>=0?String(row[iCat]||'').trim():''});
+          out.push({
+            placa,
+            status:String(row[iStatus]||'').trim(),
+            unidade:unidadeRaw||ultimaUnidade,
+            categoria:iCat>=0?String(row[iCat]||'').trim():'',
+            tipo_rota_relatorio:iTipoRota>=0?String(row[iTipoRota]||'').trim():''
+          });
         }
         resolve(out);
       }catch(err){reject(err);}
@@ -1473,14 +1501,17 @@ async function importarPreventivas(file){
   alertEl.style.display='none';
   let linhas;
   try{linhas=await parseExcelPreventivas(file);}
-  catch(e){alertEl.style.display='block';alertEl.className='pv-alert err';alertEl.innerHTML='Erro ao ler o arquivo. Confira se e o relatorio correto.';return;}
+  catch(e){alertEl.style.display='block';alertEl.className='pv-alert err';alertEl.innerHTML='Erro ao ler o arquivo: '+(e.message||'confira se e o relatorio correto.');return;}
   if(!linhas.length){alertEl.style.display='block';alertEl.className='pv-alert err';alertEl.innerHTML='Nenhuma linha encontrada no arquivo.';return;}
-  // cruza cada placa com o banco pra achar tipo_rota
+  // cruza cada placa com o cadastro. Se o proprio relatorio trouxer tipo de rota/operacao,
+  // ele tem prioridade; assim uma linha valida nao some apenas porque a placa ainda nao esta no cadastro.
   const naoEncontradas=[];
   linhas.forEach(l=>{
-    const tr=tipoRotaDaPlaca(l.placa);
-    if(tr===null){l.tipo_rota='';l.achado=false;naoEncontradas.push(l.placa);}
-    else{l.tipo_rota=tr;l.achado=true;}
+    const trCad=tipoRotaDaPlaca(l.placa);
+    const trRel=prevNormTipoRota(l.tipo_rota_relatorio||'');
+    l.tipo_rota=trRel||prevNormTipoRota(trCad||'');
+    l.achado=trCad!==null;
+    if(trCad===null)naoEncontradas.push(l.placa);
   });
   const rotulo=new Date().toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
   // salva no banco
@@ -1494,10 +1525,19 @@ async function importarPreventivas(file){
   }else{
     PREV_IMPORTS.unshift({id:'local-'+Date.now(),criado_em:new Date().toISOString(),rotulo,is_base:PREV_IMPORTS.length===0,dados:linhas});
   }
-  // alerta de placas nao encontradas
-  if(naoEncontradas.length){
-    alertEl.style.display='block';alertEl.className='pv-alert warn';
-    alertEl.innerHTML='<b><i class="ti ti-alert-triangle"></i> '+naoEncontradas.length+' placa(s) nao encontrada(s) no cadastro</b> (nao entram na contagem): '+naoEncontradas.join(', ');
+  // feedback focado no que realmente entra no painel: somente Alerta/Vencida.
+  const pendentes=linhas.filter(l=>{const c=statusCat(l.status);return (c==='alerta'||c==='vencida')&&!placaInativa(l.placa);});
+  const qtdAlerta=pendentes.filter(l=>statusCat(l.status)==='alerta').length;
+  const qtdVencida=pendentes.filter(l=>statusCat(l.status)==='vencida').length;
+  const unidadesPend=[...new Set(pendentes.map(l=>prevNormUnidade(l.unidade||unidadeDaPlaca(l.placa))).filter(Boolean))];
+  const pendSemBase=pendentes.filter(l=>!prevNormUnidade(l.unidade||unidadeDaPlaca(l.placa))).length;
+  alertEl.style.display='block';
+  if(naoEncontradas.length||pendSemBase){
+    alertEl.className='pv-alert warn';
+    alertEl.innerHTML='<b><i class="ti ti-alert-triangle"></i> Pendencias lidas: '+pendentes.length+' ('+qtdAlerta+' em alerta e '+qtdVencida+' vencidas) em '+unidadesPend.length+' base(s).</b> '+(pendSemBase?pendSemBase+' pendencia(s) ficaram sem base identificada. ':'')+(naoEncontradas.length?naoEncontradas.length+' placa(s) nao foram localizadas no cadastro interno. Na visao Geral elas continuam sendo consideradas pelo relatorio.':'');
+  }else{
+    alertEl.className='pv-alert ok';
+    alertEl.innerHTML='<b><i class="ti ti-check"></i> Pendencias lidas corretamente:</b> '+pendentes.length+' ('+qtdAlerta+' em alerta e '+qtdVencida+' vencidas) em '+unidadesPend.length+' base(s).';
   }
   renderPrev();
 }
@@ -1519,13 +1559,14 @@ async function excluirImport(id){
 }
 // filtra linhas de um import por visao
 function filtraVisao(linhas,view){
-  linhas=linhas.filter(l=>l.achado);
-  const ehColeta=l=>{const t=(l.tipo_rota||'').toUpperCase();return t.includes('COLETA')||t.includes('ENTREGA');};
-  const ehTransf=l=>(l.tipo_rota||'').toUpperCase().includes('TRANSF');
+  linhas=(linhas||[]).filter(l=>l&&l.placa);
+  const ehColeta=l=>{const t=prevNormTipoRota(l.tipo_rota||l.tipo_rota_relatorio||'');return t.includes('COLETA')||t.includes('ENTREGA');};
+  const ehTransf=l=>prevNormTipoRota(l.tipo_rota||l.tipo_rota_relatorio||'').includes('TRANSF');
   if(view==='coleta')return linhas.filter(ehColeta);
   if(view==='trans')return linhas.filter(ehTransf);
-  // geral = so coleta/entrega + transferencia (ignora placas sem tipo de rota, pra bater com a soma)
-  return linhas.filter(l=>ehColeta(l)||ehTransf(l));
+  // GERAL = todas as linhas do relatorio. O filtro Alerta/Vencida e aplicado no resumo;
+  // nao descarta uma pendencia so porque o tipo de rota nao foi reconhecido.
+  return linhas;
 }
 // cor do farol (gradiente vermelho->verde) por percentual 0..1
 function farolColor(p){
@@ -1538,38 +1579,49 @@ function preventivasResumo(view){
   const base=prevBase(),ult=prevUltima();
   if(!base)return null;
   const baseLin=filtraVisao(base.dados,view);
-  // chave de agrupamento: base normal, ou responsavel na visao trans
+  // chave de agrupamento: base/unidade na visao geral/coleta, responsavel na transferencia.
   const chaveDe=(l)=>{
-    if(view==='trans'){const r=responsavelDaPlaca(l.placa);return r||'(sem responsavel)';}
-    const unidadeCadastro=(unidadeDaPlaca(l.placa)||'').trim().toUpperCase();
-    if(unidadeCadastro==='JPA CPV')return 'JPA CPV';
-    return l.unidade||'(sem base)';
+    if(view==='trans'){
+      const r=responsavelDaPlaca(l.placa);
+      return r||'(sem responsavel)';
+    }
+    const unidadeCadastro=prevNormUnidade(unidadeDaPlaca(l.placa));
+    const unidadeRel=prevNormUnidade(l.unidade);
+    if(unidadeCadastro==='JPA CPV'||unidadeRel==='JPA CPV')return 'JPA CPV';
+    return unidadeRel||unidadeCadastro||'(sem base)';
   };
-  // meta por chave: placas com alerta ou vencida na foto base
-  const meta={}; // chave -> {placas:Set, alerta, vencida}
+  // Somente Alerta e Vencida fazem parte da meta/painel. Preventiva Valida fica fora.
+  const meta={}; // chave -> {placas:Set, alerta, vencida, realizados}
   const baseStatus={}; // "chave|placa" -> status na foto base
   baseLin.forEach(l=>{
     if(placaInativa(l.placa))return; // veiculo desativado: fora da preventiva
     const cat=statusCat(l.status);
-    if(cat==='alerta'||cat==='vencida'){
-      const u=chaveDe(l);
-      if(!meta[u])meta[u]={placas:new Set(),alerta:0,vencida:0,realizados:0};
-      meta[u].placas.add(l.placa);
-      baseStatus[u+'|'+l.placa]=cat;
-      if(cat==='alerta')meta[u].alerta++;else meta[u].vencida++;
-    }
+    if(cat!=='alerta'&&cat!=='vencida')return;
+    const u=chaveDe(l);
+    if(!meta[u])meta[u]={placas:new Set(),alerta:0,vencida:0,realizados:0};
+    meta[u].placas.add(l.placa);
+    baseStatus[u+'|'+l.placa]=cat;
+    if(cat==='alerta')meta[u].alerta++;else meta[u].vencida++;
   });
-  // status atual das placas da meta na ultima importacao
+  // status atual das placas da meta na ultima importacao.
+  // Grava tambem a placa convertida antiga<->Mercosul para nao perder correspondencia entre relatorios.
   const ultMap={};
-  if(ult){filtraVisao(ult.dados,view).forEach(l=>{ultMap[l.placa]=statusCat(l.status);});}
+  if(ult){filtraVisao(ult.dados,view).forEach(l=>{
+    const st=statusCat(l.status),pl=String(l.placa||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+    if(!pl)return;
+    ultMap[pl]=st;
+    const alt=placaConv(pl);if(alt)ultMap[alt]=st;
+  });}
   for(const u in meta){
     meta[u].placas.forEach(pl=>{
-      const st=ultMap[pl];
+      const key=String(pl||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+      const st=ultMap[key];
       if(st==='valida')meta[u].realizados++; // saiu de vencida/alerta -> feito
     });
     // monta a lista detalhada de placas da meta com status atual
     meta[u].detalhe=[...meta[u].placas].map(pl=>{
-      const atual=ultMap[pl]||baseStatus[u+'|'+pl]||'outro';
+      const key=String(pl||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+      const atual=ultMap[key]||baseStatus[u+'|'+pl]||'outro';
       return {placa:pl,status:atual};
     }).sort((a,b)=>{
       const ord={vencida:0,alerta:1,valida:2,outro:3};
