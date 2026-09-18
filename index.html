@@ -396,6 +396,13 @@ body.somente-consulta .avm-div{display:none!important}
 .pvem-k{font-size:12.5px;color:var(--txt);font-weight:600;min-width:110px;flex-shrink:0}
 .pvem-in{flex:1;background:var(--bg2);border:1px solid var(--line);color:var(--txt);border-radius:7px;padding:7px 10px;font-size:12.5px}
 .pvem-in:focus{outline:none;border-color:var(--blue)}
+.pvem-syncbar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:7px 0 10px;padding:8px 10px;background:var(--bg2);border:1px solid var(--line);border-radius:8px}
+.pvem-syncstatus{font-size:11.5px;color:var(--txt3);display:flex;align-items:center;gap:6px}
+.pvem-syncstatus.ok{color:var(--green)}
+.pvem-syncstatus.err{color:var(--red)}
+.pvem-syncbtn{border:1px solid var(--line2);background:var(--surf2);color:var(--txt2);border-radius:7px;padding:6px 10px;font-size:11.5px;font-weight:600;cursor:pointer}
+.pvem-syncbtn:hover{border-color:var(--blue);color:var(--txt)}
+
 .pv-btn-imp{background:linear-gradient(135deg,var(--blue),var(--blue2));color:#16191d;border:none;padding:11px 20px;border-radius:11px;font-weight:700;font-size:14px;cursor:pointer;display:inline-flex;align-items:center;gap:8px;width:100%;justify-content:center}
 .pv-btn-imp:hover{filter:brightness(1.08)}
 .pv-base-info{font-size:13px;color:var(--txt2);background:var(--surf);border:1px solid var(--line);padding:9px 15px;border-radius:10px;display:flex;align-items:center;gap:7px}
@@ -1178,6 +1185,7 @@ body.somente-consulta .avm-div{display:none!important}
     <div class="pv-imports-list" id="pv-imports-bar"></div>
 
     <div class="pv-imports-title" style="margin-top:22px">Emails de destino</div>
+    <div class="pvem-syncbar"><span class="pvem-syncstatus" id="pvem-sync-status"><i class="ti ti-cloud"></i> Aguardando sincronizacao</span><button type="button" class="pvem-syncbtn" id="pvem-sync-btn"><i class="ti ti-refresh"></i> Sincronizar agora</button></div>
     <div class="pvem-tabs">
       <button class="pvem-tab active" data-et="col">Coleta/Entrega (por base)</button>
       <button class="pvem-tab" data-et="tr">Transferencia (por responsavel)</button>
@@ -1337,6 +1345,9 @@ function subscribeOficRealtime(){
 
 /* ==================== PREVENTIVAS ==================== */
 let PREV_IMPORTS=[];      // todas as importacoes {id,criado_em,rotulo,is_base,dados}
+const EMAIL_CFG_ROTULO='__CONFIG_EMAIL_PREVENTIVAS__';
+let EMAIL_CONFIG_ID=null;
+let EMAIL_CONFIG_CHANNEL=null;
 let PREV_VIEW='geral';    // visao ativa
 // conversao de placa antiga<->mercosul (5o caractere)
 const N2L={'0':'A','1':'B','2':'C','3':'D','4':'E','5':'F','6':'G','7':'H','8':'I','9':'J'};
@@ -1410,8 +1421,20 @@ function statusCat(st){
 }
 async function loadPrevImports(){
   if(!sbOk)return;
-  try{const {data,error}=await sb.from('prev_imports').select('*').order('criado_em',{ascending:false});if(error)throw error;PREV_IMPORTS=data||[];}
-  catch(e){console.warn('load prev',e);}
+  try{
+    const {data,error}=await sb.from('prev_imports').select('*').order('criado_em',{ascending:false});
+    if(error)throw error;
+    const rows=data||[];
+    const cfg=rows.find(x=>x.rotulo===EMAIL_CFG_ROTULO)||null;
+    PREV_IMPORTS=rows.filter(x=>x.rotulo!==EMAIL_CFG_ROTULO);
+    if(cfg){
+      EMAIL_CONFIG_ID=cfg.id;
+      aplicarEmailConfigRemoto(cfg.dados||{});
+    }else{
+      EMAIL_CONFIG_ID=null;
+      atualizarStatusEmailSync('local');
+    }
+  }catch(e){console.warn('load prev',e);atualizarStatusEmailSync('erro');}
 }
 // le o arquivo Excel e retorna array de linhas normalizadas
 function parseExcelPreventivas(file){
@@ -1557,11 +1580,92 @@ function preventivasResumo(view){
 }
 // ---- ENVIO DE EMAILS DE PREVENTIVAS ----
 // emails de destino: por base (coleta/entrega) e por responsavel (transferencia)
+// localStorage fica apenas como cache; a fonte compartilhada e o Supabase.
 let EMAIL_BASES=JSON.parse(localStorage.getItem('email_bases')||'{}');   // {"JPA CO":["x@..","y@.."]}
 let EMAIL_RESP=JSON.parse(localStorage.getItem('email_resp')||'{}');     // {"Bruno Barros":["b@.."]}
 const EMAIL_TESTE='evellynricarte@gmail.com';
 let MODO_TESTE_EMAIL=false;
-function salvarEmailBases(){localStorage.setItem('email_bases',JSON.stringify(EMAIL_BASES));localStorage.setItem('email_resp',JSON.stringify(EMAIL_RESP));}
+function salvarEmailLocal(){
+  localStorage.setItem('email_bases',JSON.stringify(EMAIL_BASES));
+  localStorage.setItem('email_resp',JSON.stringify(EMAIL_RESP));
+}
+function atualizarStatusEmailSync(st){
+  const el=document.getElementById('pvem-sync-status');if(!el)return;
+  el.classList.remove('ok','err');
+  if(st==='ok'){el.classList.add('ok');el.innerHTML='<i class="ti ti-cloud-check"></i> Sincronizado com a equipe';}
+  else if(st==='salvando'){el.innerHTML='<i class="ti ti-loader"></i> Salvando no banco...';}
+  else if(st==='erro'){el.classList.add('err');el.innerHTML='<i class="ti ti-alert-triangle"></i> Falha ao sincronizar';}
+  else{el.innerHTML='<i class="ti ti-device-desktop"></i> Dados somente neste navegador';}
+}
+function aplicarEmailConfigRemoto(dados){
+  const d=(dados&&typeof dados==='object')?dados:{};
+  EMAIL_BASES=(d.email_bases&&typeof d.email_bases==='object')?d.email_bases:{};
+  EMAIL_RESP=(d.email_resp&&typeof d.email_resp==='object')?d.email_resp:{};
+  salvarEmailLocal();
+  atualizarStatusEmailSync('ok');
+  if(document.getElementById('pvmodal')?.classList.contains('open'))renderEmailCad();
+}
+async function obterEmailConfigRemoto(){
+  if(!sbOk)return null;
+  const {data,error}=await sb.from('prev_imports').select('id,dados').eq('rotulo',EMAIL_CFG_ROTULO).order('criado_em',{ascending:false}).limit(1);
+  if(error)throw error;
+  return data&&data.length?data[0]:null;
+}
+async function gravarEmailConfig(dados,idPreferido){
+  if(!sbOk)return null;
+  const payload={email_bases:dados.email_bases||{},email_resp:dados.email_resp||{}};
+  let id=idPreferido||EMAIL_CONFIG_ID;
+  if(id!=null){
+    const {error}=await sb.from('prev_imports').update({dados:payload,is_base:false}).eq('id',id);
+    if(error)throw error;
+    EMAIL_CONFIG_ID=id;return id;
+  }
+  const {data,error}=await sb.from('prev_imports').insert({rotulo:EMAIL_CFG_ROTULO,is_base:false,dados:payload}).select('id').single();
+  if(error)throw error;
+  EMAIL_CONFIG_ID=data.id;return data.id;
+}
+async function salvarEmailAlteracao(tipo,chave,valores){
+  salvarEmailLocal();
+  if(!sbOk){atualizarStatusEmailSync('local');return;}
+  atualizarStatusEmailSync('salvando');
+  try{
+    const remoto=await obterEmailConfigRemoto();
+    const dados=remoto&&remoto.dados&&typeof remoto.dados==='object'?remoto.dados:{};
+    const bases={...((dados.email_bases&&typeof dados.email_bases==='object')?dados.email_bases:{})};
+    const resp={...((dados.email_resp&&typeof dados.email_resp==='object')?dados.email_resp:{})};
+    const alvo=tipo==='base'?bases:resp;
+    if(valores&&valores.length)alvo[chave]=valores;else delete alvo[chave];
+    await gravarEmailConfig({email_bases:bases,email_resp:resp},remoto?remoto.id:null);
+    EMAIL_BASES=bases;EMAIL_RESP=resp;salvarEmailLocal();
+    atualizarStatusEmailSync('ok');
+  }catch(e){console.warn('sync emails',e);atualizarStatusEmailSync('erro');}
+}
+async function sincronizarEmailsLocais(){
+  salvarEmailLocal();
+  if(!sbOk){atualizarStatusEmailSync('local');alert('Sem conexao com o banco. Os emails continuam salvos somente neste navegador.');return;}
+  atualizarStatusEmailSync('salvando');
+  try{
+    const remoto=await obterEmailConfigRemoto();
+    const rd=remoto&&remoto.dados&&typeof remoto.dados==='object'?remoto.dados:{};
+    // Mescla para migrar cadastros antigos do navegador sem apagar o que ja estiver compartilhado.
+    const bases={...((rd.email_bases&&typeof rd.email_bases==='object')?rd.email_bases:{}),...EMAIL_BASES};
+    const resp={...((rd.email_resp&&typeof rd.email_resp==='object')?rd.email_resp:{}),...EMAIL_RESP};
+    await gravarEmailConfig({email_bases:bases,email_resp:resp},remoto?remoto.id:null);
+    EMAIL_BASES=bases;EMAIL_RESP=resp;salvarEmailLocal();
+    atualizarStatusEmailSync('ok');renderEmailCad();
+  }catch(e){console.warn('sync emails manual',e);atualizarStatusEmailSync('erro');alert('Nao foi possivel sincronizar os emails: '+(e.message||e));}
+}
+function subscribeEmailConfigRealtime(){
+  if(!sbOk||EMAIL_CONFIG_CHANNEL)return;
+  try{
+    EMAIL_CONFIG_CHANNEL=sb.channel('email-config-shared')
+      .on('postgres_changes',{event:'*',schema:'public',table:'prev_imports'},async payload=>{
+        const row=payload.new||payload.old||{};
+        if(row.rotulo!==EMAIL_CFG_ROTULO)return;
+        try{const remoto=await obterEmailConfigRemoto();if(remoto){EMAIL_CONFIG_ID=remoto.id;aplicarEmailConfigRemoto(remoto.dados||{});}}catch(e){}
+      }).subscribe();
+  }catch(e){console.warn('email realtime',e);}
+}
 function montarEmailHtml(titulo,d,tipo){
   const pend=d.alerta+d.vencida;const pct=pend?Math.round(d.realizados/pend*100):100;
   const col=pct>=100?'#5ec9a0':(pct>=50?'#e0a94a':'#e0645f');
@@ -1707,14 +1811,14 @@ function renderEmailCad(){
       const ems=(EMAIL_BASES[b]||[]).join(', ');
       return '<div class="pvem-row"><span class="pvem-k">'+prevGrupoLabel(b)+'</span><input class="pvem-in" data-b="'+b.replace(/"/g,'&quot;')+'" value="'+ems.replace(/"/g,'&quot;')+'" placeholder="email1@..., email2@..."/></div>';
     }).join('')||'<div class="pv-noimp">Nenhuma base de Coleta/Entrega encontrada no cadastro.</div>';
-    cont.querySelectorAll('.pvem-in[data-b]').forEach(inp=>inp.onchange=()=>{const v=inp.value.split(',').map(x=>x.trim()).filter(Boolean);if(v.length)EMAIL_BASES[inp.dataset.b]=v;else delete EMAIL_BASES[inp.dataset.b];salvarEmailBases();});
+    cont.querySelectorAll('.pvem-in[data-b]').forEach(inp=>inp.onchange=async()=>{const v=inp.value.split(',').map(x=>x.trim()).filter(Boolean);if(v.length)EMAIL_BASES[inp.dataset.b]=v;else delete EMAIL_BASES[inp.dataset.b];await salvarEmailAlteracao('base',inp.dataset.b,v);});
   }else{
     const resps=RESPONSAVEIS.slice().sort();
     cont.innerHTML='<div style="font-size:11.5px;color:var(--txt3);margin:0 0 5px">Cadastre os emails dos responsaveis pelas transferencias.</div>'+resps.map(r=>{
       const ems=(EMAIL_RESP[r]||[]).join(', ');
       return '<div class="pvem-row"><span class="pvem-k">'+r+'</span><input class="pvem-in" data-r="'+r.replace(/"/g,'&quot;')+'" value="'+ems.replace(/"/g,'&quot;')+'" placeholder="email@..."/></div>';
     }).join('');
-    cont.querySelectorAll('.pvem-in[data-r]').forEach(inp=>inp.onchange=()=>{const v=inp.value.split(',').map(x=>x.trim()).filter(Boolean);if(v.length)EMAIL_RESP[inp.dataset.r]=v;else delete EMAIL_RESP[inp.dataset.r];salvarEmailBases();});
+    cont.querySelectorAll('.pvem-in[data-r]').forEach(inp=>inp.onchange=async()=>{const v=inp.value.split(',').map(x=>x.trim()).filter(Boolean);if(v.length)EMAIL_RESP[inp.dataset.r]=v;else delete EMAIL_RESP[inp.dataset.r];await salvarEmailAlteracao('resp',inp.dataset.r,v);});
   }
 }
 function baixarExcelVeiculos(){
@@ -1929,6 +2033,7 @@ async function carregarDados(){
     await loadOficinas();
     subscribeOficRealtime();
     await loadPrevImports();
+    subscribeEmailConfigRealtime();
     refreshAll();
     if(USER_PAPEL==='editor')maybeAutoConf();
   }catch(e){console.warn('Supabase indisponivel:',e);setStatus('offline','Sem conexao — usando dados locais');}
@@ -2004,6 +2109,7 @@ document.getElementById('pv-import-btn').onclick=()=>document.getElementById('pv
 document.getElementById('pv-file').onchange=e=>{if(e.target.files[0]){importarPreventivas(e.target.files[0]);e.target.value='';}};
 document.querySelectorAll('.pv-vtab').forEach(b=>b.onclick=()=>{document.querySelectorAll('.pv-vtab').forEach(x=>x.classList.remove('active'));b.classList.add('active');PREV_VIEW=b.dataset.pv;renderPrev();});
 document.querySelectorAll('.pvem-tab').forEach(t=>t.onclick=()=>{document.querySelectorAll('.pvem-tab').forEach(x=>x.classList.remove('active'));t.classList.add('active');PVEM_TAB=t.dataset.et;renderEmailCad();});
+document.getElementById('pvem-sync-btn')?.addEventListener('click',sincronizarEmailsLocais);
 document.getElementById('env-close').onclick=()=>document.getElementById('envmodal').classList.remove('open');
 document.getElementById('envmodal').onclick=e=>{if(e.target.id==='envmodal')document.getElementById('envmodal').classList.remove('open');};
 document.querySelectorAll('.env-opt').forEach(b=>b.onclick=()=>dispararEnvioPrev(b.dataset.env));
