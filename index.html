@@ -927,6 +927,7 @@ body.somente-consulta .avm-div{display:none!important}
       <div class="kpi b-blue"><div class="lbl"><i class="ti ti-tool"></i> Em manutencao</div><div class="val" id="m-man">0</div><div class="delta flat" id="m-man-d">parados na oficina</div></div>
       <div class="kpi b-red"><div class="lbl"><i class="ti ti-alert-triangle"></i> Alta Monta</div><div class="val" id="m-alta">0%</div><div class="delta flat" id="m-alta-d">0 veiculos</div></div>
       <div class="kpi b-amber"><div class="lbl"><i class="ti ti-tool"></i> Media Monta</div><div class="val" id="m-media">0%</div><div class="delta flat" id="m-media-d">0 veiculos</div></div>
+      <div class="kpi b-green"><div class="lbl"><i class="ti ti-tool"></i> Baixa Monta - Preventivas inclusas</div><div class="val" id="m-baixa">0%</div><div class="delta flat" id="m-baixa-d">0 veiculos</div></div>
       <div class="kpi b-purple tmp-summary">
         <div class="lbl"><i class="ti ti-clock-exclamation"></i> Tempo medio parado</div>
         <div class="tmp-metrics">
@@ -2664,6 +2665,9 @@ function renderMensal(){
   document.getElementById('m-alta-d').textContent=alta.length+' de '+man.length+' veiculos';
   document.getElementById('m-media').textContent=pctMedia+'%';
   document.getElementById('m-media-d').textContent=media.length+' de '+man.length+' veiculos';
+  const pctBaixa=man.length?Math.round(baixa.length/man.length*100):0;
+  document.getElementById('m-baixa').textContent=pctBaixa+'%';
+  document.getElementById('m-baixa-d').textContent=baixa.length+' de '+man.length+' veiculos';
 
   const mediasTempo={
     geral:mediaDias(grupos.geral),
